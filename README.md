@@ -1,2 +1,2 @@
 # Food_delivery
-Project for COSC310
+A food delivery application built with Python for COSC 310.
