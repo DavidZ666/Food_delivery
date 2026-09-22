@@ -1,0 +1,12 @@
+[
+  {
+    "id": "r1",
+    "name": "Sakura Sushi",
+    "cuisine": "Japanese"
+  },
+  {
+    "id": "r2",
+    "name": "Wang's Noodles",
+    "cuisine": "Chinese"
+  }
+]
