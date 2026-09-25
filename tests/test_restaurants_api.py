@@ -4,7 +4,7 @@ def test_restaurants_returns_200(client):
     assert response.status_code == 200
 
 
-def test_health_returns_sample_data(client):
+def test_restaurants_returns_sample_data(client):
     response = client.get("/restaurants")
 
     assert response.json() == [
