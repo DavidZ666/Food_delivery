@@ -1,119 +1,121 @@
-# Food Delivery
+## Team
 
-A food delivery application built with Python for COSC 310.
+ByteBites
 
-## Getting Started
+## Python Version
 
-After accepting the GitHub invitation, follow these steps to set up the project and contribute.
+Use Python 3.14.7.
 
-### 1. Clone the Repository
+## Setup
 
-Clone the repository and open the project folder in VS Code. Replace the placeholders below with the actual repository URL and folder name.
+Clone the repository and enter the project directory:
 
 ```bash
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/DavidZ666/Food_delivery.git
+cd Food_delivery
 ```
 
-### 2. Set Up a Virtual Environment
+Create and activate a virtual environment.
 
-Each team member should create their own local virtual environment.
-
-**macOS / Linux**
+### macOS / Linux
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-**Windows PowerShell**
+### Windows PowerShell
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-**Install dependencies**
-
-With the virtual environment activated, run:
+Install dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-All team members should use the same agreed Python version. Record this version in the README.
+## Run the Application
 
-### 3. Keep Local Environment Files Out of Git
-
-**Do not push your `.venv` folder to GitHub.** Each person creates it locally.
-
-Our `.gitignore` should include:
-
-```gitignore
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.env
-```
-
-We **do commit `requirements.txt`** so everyone can install the project dependencies. If you add a dependency, update this file.
-
-Never commit passwords, tokens, or API keys.
-
-### 4. Create a Feature Branch
-
-Coordinate your task on the GitHub Project Board before starting.
-
-With a clean working directory, update `main` and create a branch:
+From the project root, with the virtual environment activated:
 
 ```bash
-git switch main
-git pull origin main
-git switch -c feature/your-task
+python -m uvicorn app.main:app --reload
 ```
 
-Name your branch after the task, such as `feature/restaurant-list`.
+The application runs at http://127.0.0.1:8000.
 
-**Do not commit implementation changes directly to `main`.**
+Press Ctrl+C in the terminal to stop the server.
 
-### 5. Test, Commit, and Push
+## API Endpoints
 
-Once the test suite is available, run:
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
+| GET | /restaurants | Returns the restaurant list |
+| GET | /docs | Opens the interactive API documentation |
+
+Open these URLs while the server is running:
+
+- http://127.0.0.1:8000/health
+- http://127.0.0.1:8000/restaurants
+- http://127.0.0.1:8000/docs
+
+## Data and Configuration
+
+The restaurant-list endpoint reads `data/restaurants.json`.
+This file contains two representative restaurants with `id`, `name`,
+and `cuisine` fields.
+
+The default data directory is the repository's `data` directory.
+Set the `FOOD_DELIVERY_DATA_DIR` environment variable to use a
+different directory. That directory must contain `restaurants.json`.
+
+The restaurant request follows this path:
+
+Route → Service → Repository → JSON file
+
+The route handles HTTP requests and declares the Pydantic response
+model. The service delegates to the repository, which reads the
+configured JSON file.
+
+## Run Tests
+
+From the project root, with dependencies installed and the virtual
+environment activated:
 
 ```bash
-python -m pytest
+python -m pytest -v
 ```
 
-Review your changes:
+Starting the server separately is not required.
 
-```bash
-git status
-git diff
+Tests cover:
+
+- The health endpoint.
+- The restaurant-list endpoint.
+- Restaurant repository data loading.
+- Invalid JSON handling.
+- Restaurant and menu data association.
+
+Tests use temporary files created with pytest's `tmp_path`.
+Backend tests use `monkeypatch` to temporarily set
+`FOOD_DELIVERY_DATA_DIR`. Tests do not modify committed data.
+
+## Repository Structure
+
+```text
+app/
+├── main.py           # FastAPI application and router registration
+├── routes/           # HTTP endpoints
+├── services/         # Application logic
+├── repositories/     # JSON data access
+├── schemas/          # Pydantic response models
+└── core/             # Data-directory configuration
+data/                 # Representative JSON data
+tests/                # Automated tests
+requirements.txt      # Python dependencies
+README.md             # Setup, usage, and collaboration instructions
 ```
-
-Stage only the intended files, then commit and push your branch:
-
-```bash
-git add <files-you-changed>
-git commit -m "Describe your changes"
-git push -u origin feature/your-task
-```
-
-### 6. Open a Pull Request
-
-On GitHub:
-
-1. Open a Pull Request from your feature branch into `main`.
-2. Explain what changed and how you tested it.
-3. Request a teammate's review.
-4. Address review comments and resolve failing checks.
-5. Merge after review and successful checks.
-
-Do not approve your own Pull Request.
-
-## Team Workflow
-
-**Issue → Feature Branch → Code and Tests → Pull Request → Peer Review → Merge**
-
-Use the GitHub Project Board to coordinate work and track progress. Every team member should be able to explain the code they contribute or review.
