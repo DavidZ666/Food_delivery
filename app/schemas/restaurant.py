@@ -17,7 +17,7 @@ class Hours(BaseModel):
     sunday: str | None = None
 
 class RestaurantRead(BaseModel):
-    id: str
+    id: int
     name: str
     cuisine: str
     location: Location
