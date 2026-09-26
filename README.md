@@ -66,7 +66,7 @@ Open these URLs while the server is running:
 ## Data and Configuration
 
 The restaurant-list endpoint reads `data/restaurants.json`.
-This file contains two representative restaurants. Each retaurant has a required `id (int)`, `name`, `cuisine`, and `location` (address, city, province, postal code). Each restaurant also has optional fields `description`, `logo_url`, and weekly `hours`. The model is defined in `app/schemas/restaurant.py`.
+This file contains two representative restaurants. Each restaurant has a required `id (int)`, `name`, `cuisine`, and `location` (address, city, province, postal code). Each restaurant also has optional fields `description`, `logo_url`, and weekly `hours`. The model is defined in `app/schemas/restaurant.py`.
 
 The default data directory is the repository's `data` directory.
 Set the `FOOD_DELIVERY_DATA_DIR` environment variable to use a
@@ -101,6 +101,11 @@ Tests cover:
 Tests use temporary files created with pytest's `tmp_path`.
 Backend tests use `monkeypatch` to temporarily set
 `FOOD_DELIVERY_DATA_DIR`. Tests do not modify committed data.
+
+## Continuous Integration
+
+Pull requests and pushes to `main` automatically install the project
+dependencies and run the complete pytest suite using GitHub Actions.
 
 ## Repository Structure
 
