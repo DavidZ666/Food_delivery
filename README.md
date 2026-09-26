@@ -66,8 +66,7 @@ Open these URLs while the server is running:
 ## Data and Configuration
 
 The restaurant-list endpoint reads `data/restaurants.json`.
-This file contains two representative restaurants with `id`, `name`,
-and `cuisine` fields.
+This file contains two representative restaurants. Each retaurant has a required `id (int)`, `name`, `cuisine`, and `location` (address, city, province, postal code). Each restaurant also has optional fields `description`, `logo_url`, and weekly `hours`. The model is defined in `app/schemas/restaurant.py`.
 
 The default data directory is the repository's `data` directory.
 Set the `FOOD_DELIVERY_DATA_DIR` environment variable to use a
@@ -95,10 +94,9 @@ Starting the server separately is not required.
 Tests cover:
 
 - The health endpoint.
-- The restaurant-list endpoint.
+- The restaurant-list endpoint, including optional field support.
 - Restaurant repository data loading.
-- Invalid JSON handling.
-- Restaurant and menu data association.
+- Failure cases: missing data file, invalid JSON, and missing required fields.
 
 Tests use temporary files created with pytest's `tmp_path`.
 Backend tests use `monkeypatch` to temporarily set
