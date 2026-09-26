@@ -8,8 +8,8 @@ def test_list_all_returns_records_from_file(data_dir):
     restaurants = restaurant_repo.list_all()
 
     assert len(restaurants) == 2
-    assert restaurants[0]["id"] == "t1"
-    assert restaurants[1]["id"] == "t2"
+    assert restaurants[0]["id"] == 101
+    assert restaurants[1]["id"] == 102
 
 
 def test_list_all_returns_empty_list_for_empty_file(data_dir):
