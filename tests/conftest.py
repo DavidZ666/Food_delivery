@@ -6,8 +6,39 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 SAMPLE_RESTAURANTS = [
-    {"id": "t1", "name": "Test Tacos", "cuisine": "Mexican"},
-    {"id": "t2", "name": "Test Thai", "cuisine": "Thai"}
+    {
+        "id": 101,
+        "name": "Testaurant",
+        "cuisine": "Mexican",
+        "location": {
+            "address": "1 Test St",
+            "city": "Kelowna",
+            "province": "BC",
+            "postal_code": "V1V 1V1"
+        },
+        "description": "Test description",
+        "logo_url": "https://example.com/logo.png",
+        "hours": {
+            "monday": "09:00-21:00",
+            "tuesday": "09:00-21:00",
+            "wednesday": "09:00-21:00",
+            "thursday": "09:00-21:00",
+            "friday": "09:00-22:00",
+            "saturday": "10:00-22:00",
+            "sunday": None
+        }
+    },
+    {
+        "id": 102,
+        "name": "McTest",
+        "cuisine": "Fast Food",
+        "location": {
+            "address": "2 Test St",
+            "city": "Kelowna",
+            "province": "BC",
+            "postal_code": "V1V 1V2",
+        }
+    }
 ]
 
 

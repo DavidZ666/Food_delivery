@@ -1,12 +1,46 @@
 [
   {
-    "id": "r1",
-    "name": "Sakura Sushi",
-    "cuisine": "Japanese"
+    "id": 1,
+    "name": "McDonalds",
+    "cuisine": "Fast Food",
+    "description": "Fast food restaurant serving burgers, fries, and more.",
+    "logo_url": "https://www.svgrepo.com/show/303106/mcdonald-s-15-logo.svg",
+    "location": {
+      "address": "123 Street St",
+      "city": "Kelowna",
+      "province": "BC",
+      "postal_code": "V1V 1V1"
+    },
+    "hours": {
+      "monday": "07:00-23:00",
+      "tuesday": "07:00-23:00",
+      "wednesday": "07:00-23:00",
+      "thursday": "07:00-23:00",
+      "friday": "07:00-00:00",
+      "saturday": "07:00-00:00",
+      "sunday": "07:00-23:00"
+    }
   },
   {
-    "id": "r2",
-    "name": "Wang's Noodles",
-    "cuisine": "Chinese"
+    "id": 2,
+    "name": "KFC",
+    "cuisine": "Fried Chicken",
+    "description": "Finger Lickin' good fried chicken and sides.",
+    "logo_url": "https://pngimg.com/uploads/kfc/kfc_PNG33.png",
+    "location": {
+      "address": "1 Street St",
+      "city": "Kelowna",
+      "province": "BC",
+      "postal_code": "V1V 1V1"
+    },
+    "hours": {
+      "monday": "07:00-22:00",
+      "tuesday": "07:00-22:00",
+      "wednesday": "07:00-22:00",
+      "thursday": "07:00-22:00",
+      "friday": "07:00-22:00",
+      "saturday": "07:00-22:00",
+      "sunday": "07:00-22:00"
+    }
   }
-]
+] 
