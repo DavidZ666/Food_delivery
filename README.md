@@ -70,11 +70,8 @@ Use an integer `id` from the restaurant list to retrieve its details:
 curl http://127.0.0.1:8000/restaurants/1
 ```
 
-`GET /restaurants/{restaurant_id}` returns HTTP 200 with the same
-`RestaurantRead` fields as the list endpoint. An unknown integer ID returns
-HTTP 404 with `{"detail": "Restaurant not found"}`, including when the stored
-collection is empty. A non-integer ID returns HTTP 422 with FastAPI validation
-details. Reads do not modify stored data. `/docs` documents these responses.
+The endpoint returns the same fields as the restaurant list. Unknown IDs
+return HTTP 404; non-integer IDs return HTTP 422.
 
 ## Data and Configuration
 
@@ -108,7 +105,7 @@ Tests cover:
 
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
-- Restaurant details, unknown IDs, empty collections, invalid IDs, and OpenAPI.
+- Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
@@ -121,15 +118,10 @@ Backend tests use `monkeypatch` to temporarily set
 Pull requests and pushes to `main` automatically install the project
 dependencies and run the complete pytest suite using GitHub Actions.
 
-Open the repository's **Actions** tab and select a CI run to view its
-**Automated test results** summary. It shows total, passed, failed, error,
-and skipped counts, plus names of failing tests. If tests could not run
-or the report cannot be read, the summary explains that results are unavailable.
-
-Download `pytest-results-python-3.14` from the run's **Artifacts** section
-to inspect the JUnit XML report. Reports are retained for 7 days and are
-published even when tests fail; failing tests still fail the CI job.
-Publishing requires no secrets or write permissions, including for fork PRs.
+In **Actions**, select a CI run to view test counts and failing test names.
+Download the JUnit report from **Artifacts** as `pytest-results-python-3.14`
+(retained for 7 days). Available results are published even when tests fail;
+unavailable results are reported explicitly.
 
 ## Repository Structure
 
