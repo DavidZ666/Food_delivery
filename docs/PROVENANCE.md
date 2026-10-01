@@ -11,9 +11,9 @@
 - Purpose: Implement restaurant menu and menu-item reads for #20.
 - Influence: Generated the API contract, layered implementation, isolated tests
   and documentation; reused stored product fields and restaurant relationships.
-- Validation: 37 tests passed on Python 3.14.3, including resource errors,
+- Validation: 37 tests passed on Python 3.14.7, including resource errors,
   ownership, storage failures, unchanged files and OpenAPI. Whitespace checks
-  passed. Python 3.14.7 was not tested.
+  passed.
 - References: [FastAPI additional responses](https://fastapi.tiangolo.com/advanced/additional-responses/),
   [response models](https://fastapi.tiangolo.com/tutorial/response-model/),
   [path operations](https://fastapi.tiangolo.com/reference/fastapi/).
