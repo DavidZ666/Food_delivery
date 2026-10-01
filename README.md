@@ -73,6 +73,7 @@ This file contains two representative restaurants. Each restaurant has a require
 The default data directory is the repository's `data` directory.
 Set the `FOOD_DELIVERY_DATA_DIR` environment variable to use a
 different directory. That directory must contain `restaurants.json`.
+Menu requests also require `products.json` in the same directory.
 
 The restaurant request follows this path:
 
@@ -98,6 +99,7 @@ Tests cover:
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
 - Restaurant repository data loading.
+- Menu browsing, item ownership and missing resources.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
 Tests use temporary files created with pytest's `tmp_path`.
@@ -127,26 +129,8 @@ README.md             # Setup, usage, and collaboration instructions
 
 ## Restaurant Menus
 
-`GET /restaurants/1/menu` returns the selected restaurant's products in stored
-order, including unavailable items. `GET /restaurants/1/menu/1` returns one
-item belonging to that restaurant. Responses preserve `product_id`,
-`restaurant_id`, `name`, `description`, `price`, `category`, `image` and
-`is_available` from `products.json`. Prices are JSON numbers.
-
-An existing restaurant with no products returns HTTP 200 with `[]`. An unknown
-restaurant returns HTTP 404 with `{"detail": "Restaurant not found"}`. Unknown
-products and products belonging to another restaurant return HTTP 404 with
-`{"detail": "Menu item not found"}`. Non-integer IDs return HTTP 422. Storage
-failures remain server errors; they are not treated as missing resources.
-
-Both `restaurants.json` and `products.json` must be present in the configured
-data directory. Requests follow Route → Service → Repository → JSON and do
-not change stored data. The service checks restaurant existence before loading
-products, distinguishing an empty menu from a missing restaurant without
-depending on the restaurant-details endpoint. Menu items use the existing
-product IDs and restaurant relationships rather than a separate menu entity.
-Preference filtering and menu writes are outside this feature.
-
-Isolated tests cover menu order and fields, unavailable items, empty menus,
-missing resources, ownership, invalid IDs, storage failures, response validation,
-unchanged files and OpenAPI documentation.
+`GET /restaurants/1/menu` returns the restaurant's items in stored order,
+including unavailable items. `GET /restaurants/1/menu/1` returns one item.
+Existing restaurants with no items return `[]`. Unknown restaurants, unknown
+items and items belonging to another restaurant return HTTP 404; non-integer
+IDs return HTTP 422. See `/docs` for response fields.
