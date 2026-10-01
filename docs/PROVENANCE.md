@@ -25,6 +25,7 @@
   usage documentation and provenance documentation.
 - Validation: 18 tests passed on Python 3.14.3. A separate run verified pass,
   failure, skip and setup-error counts; tests cover missing reports and escaping.
+- Revalidation: The current CI branch suite passed all 18 tests on Python 3.14.7.
 - PR: #15
 - References: [pytest JUnit reports](https://docs.pytest.org/en/stable/how-to/output.html#creating-junitxml-format-files),
   [GitHub job summaries](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#adding-a-job-summary).
