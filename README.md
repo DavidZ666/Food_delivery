@@ -54,7 +54,7 @@ Press Ctrl+C in the terminal to stop the server.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
-| GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants | Returns the restaurant list; optional `name` searches by name |
 | GET | /docs | Opens the interactive API documentation |
 
 Open these URLs while the server is running:
@@ -62,6 +62,16 @@ Open these URLs while the server is running:
 - http://127.0.0.1:8000/health
 - http://127.0.0.1:8000/restaurants
 - http://127.0.0.1:8000/docs
+
+Search by a literal substring of the restaurant name:
+
+```bash
+curl --get --data-urlencode "name=Mc" http://127.0.0.1:8000/restaurants
+```
+
+Search matches restaurant names only, ignoring case and surrounding query
+whitespace. Punctuation is literal. Omitted or blank queries return the full
+list; no matches return HTTP 200 with `[]`.
 
 ## Data and Configuration
 
@@ -96,6 +106,7 @@ Tests cover:
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
 - Restaurant repository data loading.
+- Name search and empty results.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
 Tests use temporary files created with pytest's `tmp_path`.
