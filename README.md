@@ -55,6 +55,7 @@ Press Ctrl+C in the terminal to stop the server.
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
 | GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
 | GET | /docs | Opens the interactive API documentation |
 
 Open these URLs while the server is running:
@@ -62,6 +63,18 @@ Open these URLs while the server is running:
 - http://127.0.0.1:8000/health
 - http://127.0.0.1:8000/restaurants
 - http://127.0.0.1:8000/docs
+
+Use an integer `id` from the restaurant list to retrieve its details:
+
+```bash
+curl http://127.0.0.1:8000/restaurants/1
+```
+
+`GET /restaurants/{restaurant_id}` returns HTTP 200 with the same
+`RestaurantRead` fields as the list endpoint. An unknown integer ID returns
+HTTP 404 with `{"detail": "Restaurant not found"}`, including when the stored
+collection is empty. A non-integer ID returns HTTP 422 with FastAPI validation
+details. Reads do not modify stored data. `/docs` documents these responses.
 
 ## Data and Configuration
 
@@ -95,6 +108,7 @@ Tests cover:
 
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
+- Restaurant details, unknown IDs, empty collections, invalid IDs, and OpenAPI.
 - Restaurant repository data loading.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
