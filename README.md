@@ -69,14 +69,9 @@ Search by a literal substring of the restaurant name:
 curl --get --data-urlencode "name=Mc" http://127.0.0.1:8000/restaurants
 ```
 
-Matching ignores case (using Unicode case folding) and trims surrounding
-query whitespace. Omitted, empty or whitespace-only `name` returns the full
-list. No matches, including an empty stored collection, return HTTP 200 with
-`[]`. Results preserve stored order and the existing `RestaurantRead` fields.
-Punctuation is literal; the search does not use regular expressions or match
-cuisine or description. Reads leave the JSON file unchanged. `/docs` documents
-the optional parameter and response model. Cuisine filtering remains a separate
-story (#13); when added, it should combine with name search using AND.
+Search matches restaurant names only, ignoring case and surrounding query
+whitespace. Punctuation is literal. Omitted or blank queries return the full
+list; no matches return HTTP 200 with `[]`.
 
 ## Data and Configuration
 
@@ -111,8 +106,7 @@ Tests cover:
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
 - Restaurant repository data loading.
-- Name search, including case, whitespace, Unicode, literal punctuation,
-  no matches, empty storage, storage failures and OpenAPI documentation.
+- Name search and empty results.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
 Tests use temporary files created with pytest's `tmp_path`.
