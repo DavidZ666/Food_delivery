@@ -107,6 +107,11 @@ Backend tests use `monkeypatch` to temporarily set
 Pull requests and pushes to `main` automatically install the project
 dependencies and run the complete pytest suite using GitHub Actions.
 
+In **Actions**, select a CI run to view test counts and failing test names.
+Download the JUnit report from **Artifacts** as `pytest-results-python-3.14`
+(retained for 7 days). Available results are published even when tests fail;
+unavailable results are reported explicitly.
+
 ## Repository Structure
 
 ```text
