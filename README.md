@@ -55,6 +55,7 @@ Press Ctrl+C in the terminal to stop the server.
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
 | GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
 | GET | /docs | Opens the interactive API documentation |
 
 Open these URLs while the server is running:
@@ -62,6 +63,15 @@ Open these URLs while the server is running:
 - http://127.0.0.1:8000/health
 - http://127.0.0.1:8000/restaurants
 - http://127.0.0.1:8000/docs
+
+Use an integer `id` from the restaurant list to retrieve its details:
+
+```bash
+curl http://127.0.0.1:8000/restaurants/1
+```
+
+The endpoint returns the same fields as the restaurant list. Unknown IDs
+return HTTP 404; non-integer IDs return HTTP 422.
 
 ## Data and Configuration
 
@@ -95,6 +105,7 @@ Tests cover:
 
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
+- Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
