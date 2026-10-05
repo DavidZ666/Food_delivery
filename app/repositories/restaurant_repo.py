@@ -24,3 +24,10 @@ def create(fields: dict) -> dict:
         return [*records, created], created
 
     return update_json(get_data_dir() / "restaurants.json", append)
+
+def get_by_id(restaurant_id: int):
+    """Read a stored restaurant, or return None when its ID is absent."""
+    return next(
+        (restaurant for restaurant in list_all() if restaurant["id"] == restaurant_id),
+        None,
+    )

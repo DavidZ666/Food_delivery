@@ -56,6 +56,7 @@ Press Ctrl+C in the terminal to stop the server.
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
 | GET | /restaurants | Returns the restaurant list |
 | POST | /restaurants | Creates a restaurant; returns HTTP 201 |
+| GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
 | GET | /docs | Opens the interactive API documentation |
 
 Open these URLs while the server is running:
@@ -86,6 +87,15 @@ Missing or invalid fields, unknown fields (including nested fields), and
 client-supplied IDs return HTTP 422 without changing storage. Missing files,
 invalid stored records or IDs, and write failures return HTTP 500; storage is
 not silently initialized. See `/docs` for request and response schemas.
+
+Use an integer `id` from the restaurant list to retrieve its details:
+
+```bash
+curl http://127.0.0.1:8000/restaurants/1
+```
+
+The endpoint returns the same fields as the restaurant list. Unknown IDs
+return HTTP 404; non-integer IDs return HTTP 422.
 
 ## Data and Configuration
 
@@ -127,6 +137,7 @@ Tests cover:
 
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
+- Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 - Restaurant creation, request validation, restart persistence, concurrent
@@ -140,6 +151,11 @@ Backend tests use `monkeypatch` to temporarily set
 
 Pull requests and pushes to `main` automatically install the project
 dependencies and run the complete pytest suite using GitHub Actions.
+
+In **Actions**, select a CI run to view test counts and failing test names.
+Download the JUnit report from **Artifacts** as `pytest-results-python-3.14`
+(retained for 7 days). Available results are published even when tests fail;
+unavailable results are reported explicitly.
 
 ## Repository Structure
 
