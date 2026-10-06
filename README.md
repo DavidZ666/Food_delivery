@@ -55,6 +55,8 @@ Press Ctrl+C in the terminal to stop the server.
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
 | GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants/{restaurant_id}/menu | Returns the restaurant menu |
+| GET | /restaurants/{restaurant_id}/menu/{product_id} | Returns a menu item belonging to the restaurant |
 | GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
 | GET | /docs | Opens the interactive API documentation |
 
@@ -81,6 +83,7 @@ This file contains two representative restaurants. Each restaurant has a require
 The default data directory is the repository's `data` directory.
 Set the `FOOD_DELIVERY_DATA_DIR` environment variable to use a
 different directory. That directory must contain `restaurants.json`.
+Menu requests also require `products.json` in the same directory.
 
 The restaurant request follows this path:
 
@@ -107,6 +110,7 @@ Tests cover:
 - The restaurant-list endpoint, including optional field support.
 - Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
+- Menu browsing, item ownership and missing resources.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
 Tests use temporary files created with pytest's `tmp_path`.
@@ -138,3 +142,11 @@ tests/                # Automated tests
 requirements.txt      # Python dependencies
 README.md             # Setup, usage, and collaboration instructions
 ```
+
+## Restaurant Menus
+
+`GET /restaurants/1/menu` returns the restaurant's items in stored order,
+including unavailable items. `GET /restaurants/1/menu/1` returns one item.
+Existing restaurants with no items return `[]`. Unknown restaurants, unknown
+items and items belonging to another restaurant return HTTP 404; non-integer
+IDs return HTTP 422. See `/docs` for response fields.
