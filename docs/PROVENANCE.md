@@ -12,10 +12,32 @@
   atomic JSON transactions, isolated tests and API/design documentation.
 - Validation: Full pytest suite on Python 3.14.7, including fresh-process
   persistence, concurrent creation and write-failure cases; `git diff --check`.
+- Integration with name search (#22): OpenAI Codex resolved the service,
+  README and provenance conflicts while retaining both features and records.
+  Added a create-then-search regression test; 121 tests passed on Python 3.14.7
+  and `git diff --check` passed.
 - References: [FastAPI request bodies](https://fastapi.tiangolo.com/tutorial/body/),
   [response status codes](https://fastapi.tiangolo.com/tutorial/response-status-code/),
   [Python temporary files](https://docs.python.org/3/library/tempfile.html),
   [os.replace](https://docs.python.org/3/library/os.html#os.replace).
+
+## Restaurant name search
+
+- Student(s): GitHub `freesialuo`
+- Artifact: `app/routes/restaurants.py`; `app/services/restaurant_service.py`;
+  `tests/test_restaurant_search.py`; `README.md`; `docs/PROVENANCE.md`
+- Label: AI-GENERATED
+- AI tool: OpenAI Codex
+- Purpose: Implement restaurant name search for #19.
+- Influence: Generated optional query handling, case-insensitive substring
+  matching, isolated tests, OpenAPI descriptions and documentation.
+- Validation: 30 tests passed on Python 3.14.7, covering search behavior,
+  unchanged storage, storage errors and OpenAPI. The diff passed whitespace
+  checks.
+- Commit: `6e08e718bf63324d5e0781143eee4531883e214f`
+- References: [FastAPI query parameters](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/),
+  [parameter reference](https://fastapi.tiangolo.com/reference/parameters/),
+  [response models](https://fastapi.tiangolo.com/tutorial/response-model/).
 
 ## Restaurant menu browsing
 

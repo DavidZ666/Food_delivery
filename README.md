@@ -54,7 +54,7 @@ Press Ctrl+C in the terminal to stop the server.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
-| GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants | Returns the restaurant list; optional `name` searches by name |
 | POST | /restaurants | Creates a restaurant; returns HTTP 201 |
 | GET | /restaurants/{restaurant_id}/menu | Returns the restaurant menu |
 | GET | /restaurants/{restaurant_id}/menu/{product_id} | Returns a menu item belonging to the restaurant |
@@ -89,6 +89,18 @@ Missing or invalid fields, unknown fields (including nested fields), and
 client-supplied IDs return HTTP 422 without changing storage. Missing files,
 invalid stored records or IDs, and write failures return HTTP 500; storage is
 not silently initialized. See `/docs` for request and response schemas.
+
+### Search and read restaurants
+
+Search by a literal substring of the restaurant name:
+
+```bash
+curl --get --data-urlencode "name=Mc" http://127.0.0.1:8000/restaurants
+```
+
+Search matches restaurant names only, ignoring case and surrounding query
+whitespace. Punctuation is literal. Omitted or blank queries return the full
+list; no matches return HTTP 200 with `[]`.
 
 Use an integer `id` from the restaurant list to retrieve its details:
 
@@ -142,6 +154,7 @@ Tests cover:
 - The restaurant-list endpoint, including optional field support.
 - Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
+- Name search and empty results.
 - Menu browsing, item ownership and missing resources.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 - Restaurant creation, request validation, restart persistence, concurrent

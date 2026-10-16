@@ -166,6 +166,22 @@ def test_write_failure_is_server_error(data_dir, payload, monkeypatch):
     assert not list(data_dir.glob("*.tmp"))
 
 
+def test_created_restaurant_is_searchable(client, data_dir, payload):
+    response = client.post("/restaurants", json=payload)
+    assert response.status_code == 201
+    created = response.json()
+    path = data_dir / "restaurants.json"
+    original = path.read_bytes()
+
+    matches = client.get("/restaurants", params={"name": "  CAFÉ 新  "})
+    assert matches.status_code == 200
+    assert matches.json() == [created]
+    assert client.get("/restaurants", params={"name": "mctest"}).json()[0]["id"] == 102
+    assert client.get(f"/restaurants/{created['id']}").json() == created
+    assert len(client.get("/restaurants").json()) == 3
+    assert path.read_bytes() == original
+
+
 def test_creation_openapi(client):
     schema = client.get("/openapi.json").json()
     operation = schema["paths"]["/restaurants"]["post"]
