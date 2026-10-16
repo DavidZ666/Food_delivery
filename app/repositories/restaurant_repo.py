@@ -3,6 +3,7 @@ from pydantic import TypeAdapter
 
 from app.repositories.json_store import read_json, update_json
 from app.schemas.restaurant import RestaurantRead
+from copy import deepcopy
 
 
 def list_all():
@@ -30,4 +31,91 @@ def get_by_id(restaurant_id: int):
     return next(
         (restaurant for restaurant in list_all() if restaurant["id"] == restaurant_id),
         None,
+    )
+
+
+class RestaurantRecordNotFoundError(LookupError):
+    pass
+
+def update_by_id(restaurant_id: int, changes: dict) -> dict:
+
+    allowed_fields = {
+        "name",
+        "cuisine",
+        "location",
+        "description",
+        "logo_url",
+        "hours",
+    }
+
+    if not changes or changes.keys() - allowed_fields:
+        raise ValueError(
+            "Only mutable restaurant fields may be updated"
+        )
+
+    def apply_update(records):
+
+        TypeAdapter(list[RestaurantRead]).validate_python(
+            records,
+            strict=True,
+        )
+
+        ids = [record["id"] for record in records]
+
+        if any(
+            type(identifier) is not int or identifier <= 0
+            for identifier in ids
+        ):
+            raise ValueError(
+                "Stored restaurant IDs must be positive integers"
+            )
+
+        if len(set(ids)) != len(ids):
+            raise ValueError(
+                "Stored restaurant IDs must be unique"
+            )
+
+        index = next(
+            (
+                index
+                for index, record in enumerate(records)
+                if record["id"] == restaurant_id
+            ),
+            None,
+        )
+
+        if index is None:
+            raise RestaurantRecordNotFoundError(
+                "Restaurant not found"
+            )
+
+        updated = deepcopy(records[index])
+
+        for field, value in changes.items():
+            if (
+                field in {"location", "hours"}
+                and isinstance(value, dict)
+            ):
+                existing = updated.get(field) or {}
+
+                updated[field] = {
+                    **existing,
+                    **value,
+                }
+            else:
+                updated[field] = value
+
+        RestaurantRead.model_validate(
+            updated,
+            strict=True,
+        )
+
+        updated_records = list(records)
+        updated_records[index] = updated
+
+        return updated_records, updated
+
+    return update_json(
+        get_data_dir() / "restaurants.json",
+        apply_update,
     )
