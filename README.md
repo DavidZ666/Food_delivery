@@ -54,7 +54,7 @@ Press Ctrl+C in the terminal to stop the server.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
-| GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants | Returns the restaurant list; optional `name` searches by name |
 | GET | /restaurants/{restaurant_id}/menu | Returns the restaurant menu |
 | GET | /restaurants/{restaurant_id}/menu/{product_id} | Returns a menu item belonging to the restaurant |
 | GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
@@ -65,6 +65,16 @@ Open these URLs while the server is running:
 - http://127.0.0.1:8000/health
 - http://127.0.0.1:8000/restaurants
 - http://127.0.0.1:8000/docs
+
+Search by a literal substring of the restaurant name:
+
+```bash
+curl --get --data-urlencode "name=Mc" http://127.0.0.1:8000/restaurants
+```
+
+Search matches restaurant names only, ignoring case and surrounding query
+whitespace. Punctuation is literal. Omitted or blank queries return the full
+list; no matches return HTTP 200 with `[]`.
 
 Use an integer `id` from the restaurant list to retrieve its details:
 
@@ -110,6 +120,7 @@ Tests cover:
 - The restaurant-list endpoint, including optional field support.
 - Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
+- Name search and empty results.
 - Menu browsing, item ownership and missing resources.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 
