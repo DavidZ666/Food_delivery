@@ -1,6 +1,9 @@
 from app.repositories import restaurant_repo
-from app.schemas.restaurant import RestaurantCreate, RestaurantRead
-
+from app.schemas.restaurant import (
+    RestaurantCreate,
+    RestaurantRead,
+    RestaurantUpdate,
+)
 
 class RestaurantNotFoundError(LookupError):
     """The requested restaurant does not exist in the stored collection."""
@@ -28,3 +31,23 @@ def get_restaurant(restaurant_id: int):
     if restaurant is None:
         raise RestaurantNotFoundError("Restaurant not found")
     return restaurant
+
+def update_restaurant(
+    restaurant_id: int,
+    restaurant: RestaurantUpdate,
+) -> dict:
+
+    changes = restaurant.model_dump(
+        mode="json",
+        exclude_unset=True,
+    )
+
+    try:
+        return restaurant_repo.update_by_id(
+            restaurant_id,
+            changes,
+        )
+    except restaurant_repo.RestaurantRecordNotFoundError as exc:
+        raise RestaurantNotFoundError(
+            "Restaurant not found"
+        ) from exc
