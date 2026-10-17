@@ -61,8 +61,10 @@ setup. All the restaurant data comes from the API, nothing is hard-coded.
 
 | Page | Path | API calls |
 |------|------|------|
-| Home | /app/ | none, just links |
+| Restaurant list | /app/ | `GET /restaurants`, name search and cuisine filtering |
 | Create a restaurant | /app/create-restaurant.html | `POST /restaurants` |
+| Restaurant details and menu | /app/restaurant.html?id=1 | Restaurant details and menu GET endpoints |
+| Menu item details | /app/menu-item.html?restaurantId=1&productId=1 | Selected restaurant/item GET endpoint |
 | Edit a restaurant | /app/edit-restaurant.html?id={restaurant_id} | `GET /restaurants`, `GET` + `PATCH /restaurants/{restaurant_id}` |
 
 **Create form:** checks the required fields first, then sends the request. If
@@ -90,6 +92,9 @@ The JS is split up so most of it can be tested:
 | GET | /restaurants | Returns the restaurant list; optional `name` searches by name |
 | POST | /restaurants | Creates a restaurant; returns HTTP 201 |
 | GET | /restaurants/{restaurant_id}/menu | Returns the restaurant menu |
+| POST | /restaurants/{restaurant_id}/menu | Creates a menu item |
+| PATCH | /restaurants/{restaurant_id}/menu/{product_id} | Updates a menu item |
+| DELETE | /restaurants/{restaurant_id}/menu/{product_id} | Removes a menu item |
 | GET | /restaurants/{restaurant_id}/menu/{product_id} | Returns a menu item belonging to the restaurant |
 | GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
 | GET | /docs | Opens the interactive API documentation |
@@ -274,3 +279,32 @@ including unavailable items. `GET /restaurants/1/menu/1` returns one item.
 Existing restaurants with no items return `[]`. Unknown restaurants, unknown
 items and items belonging to another restaurant return HTTP 404; non-integer
 IDs return HTTP 422. See `/docs` for response fields.
+
+## M1 browser acceptance (#29, #33, #41, #42)
+
+The home page loads actual restaurants and cuisine choices from the API. Search
+by name, select a cuisine, and click Search. Select a restaurant for its details
+and menu, then select a menu item. Each page reports loading, empty and failure
+states. Unavailable items remain visible. Restaurant details link to the existing
+edit form; menu errors can be retried without losing restaurant details.
+
+Browser tests require Node.js 22+ and an installed Python environment:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser runner starts its own server using `.venv/bin/python`; set
+`FOOD_DELIVERY_PYTHON` to another interpreter if needed. Each test uses temporary
+data copies and checks the representative files remain unchanged. It also tests
+creation/editing and persistence across an actual server restart.
+
+See [M1 acceptance evidence](docs/M1_ACCEPTANCE.md) for the requirement mapping,
+reproduction steps, PR review/CI audit and outstanding closure conditions.
+
+Menu updates omit fields to preserve them. Explicit nulls and nonfinite prices
+are rejected with 422 before writing, as these values cannot be represented by
+the menu response schema. Empty updates remain no-ops; supplied IDs and unknown
+fields remain ignored to preserve the existing API contract.

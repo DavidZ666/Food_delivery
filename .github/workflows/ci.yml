@@ -47,6 +47,25 @@ jobs:
       - name: Run frontend tests
         run: node --test "tests/frontend/*.test.mjs"
 
+      - name: Install browser test dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run browser acceptance against isolated data
+        env:
+          FOOD_DELIVERY_PYTHON: python
+        run: npm run test:e2e
+
+      - name: Upload browser acceptance results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-acceptance-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Publish pytest summary
         if: ${{ always() }}
         run: python scripts/summarize_tests.py pytest-results.xml

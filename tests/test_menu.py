@@ -285,7 +285,7 @@ def test_openapi_contract(client):
                  "/restaurants/{restaurant_id}/menu/{product_id}"):
         operation = schema["paths"][path]["get"]
         assert operation["summary"] and operation["description"]
-        assert set(operation["responses"]) == {"200", "404", "422"}
+        assert set(operation["responses"]) == {"200", "404", "422", "500"}
         for parameter in operation["parameters"]:
             assert parameter["in"] == "path"
             assert parameter["required"]

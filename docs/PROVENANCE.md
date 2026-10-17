@@ -1,5 +1,19 @@
 # AI Use and Provenance
 
+## Customer browsing and M1 acceptance (#29, #33, #41, #42)
+
+- Student: Yihang Zhao (GitHub `DavidZ666`).
+- Label: AI-GENERATED, with initial homepage/list changes applied by the student.
+- AI tool: OpenAI Codex.
+- Artifacts: browsing pages and scripts, menu validation/OpenAPI corrections,
+  browser/API acceptance tests, CI integration and acceptance documentation.
+- Purpose: connect the actual API to restaurant discovery, details and menu-item
+  views; verify management, error cases and restart persistence using isolated data.
+- Existing restaurant create/edit forms are reused from PRs #55/#57.
+- Validation and limitations: see `docs/M1_ACCEPTANCE.md`; independent review
+  and merge evidence must not be inferred from AI-generated checks.
+
+
 ## Restaurant edit request handling (#51, PR #57)
 
 - Student(s): Zihan Tao (GitHub `freesialuo`)

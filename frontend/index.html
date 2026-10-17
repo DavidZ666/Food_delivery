@@ -8,15 +8,44 @@
 </head>
 <body>
   <header>
-    <nav><a href="./">ByteBites</a></nav>
+    <nav>
+      <a href="./">ByteBites</a>
+      <a href="create-restaurant.html">Create a restaurant</a>
+      <a href="edit-restaurant.html">Edit a restaurant</a>
+    </nav>
   </header>
+
   <main>
-    <h1>ByteBites</h1>
-    <h2>Restaurant management</h2>
-    <ul>
-      <li><a href="create-restaurant.html">Create a restaurant</a></li>
-      <li><a href="edit-restaurant.html">Edit a restaurant</a></li>
-    </ul>
+    <h1>Find a restaurant</h1>
+
+    <form id="restaurant-search">
+      <div>
+        <label for="name">Restaurant name</label>
+        <input
+          id="name"
+          name="name"
+          type="search"
+          placeholder="Search restaurants"
+        >
+      </div>
+
+      <div>
+        <label for="cuisine">Cuisine</label>
+        <select id="cuisine" name="cuisine">
+          <option value="">All cuisines</option>
+        </select>
+      </div>
+
+      <button type="submit">Search</button>
+    </form>
+
+    <p id="restaurant-status" role="status" aria-live="polite"></p>
+
+    <section aria-labelledby="results-heading">
+      <h2 id="results-heading">Restaurants</h2>
+      <ul id="restaurant-list"></ul>
+    </section>
   </main>
+  <script type="module" src="js/restaurants.js"></script>
 </body>
 </html>

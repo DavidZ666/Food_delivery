@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Restaurant details — ByteBites</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <nav><a href="./">Back to restaurants</a></nav>
+  </header>
+  <main>
+    <h1 id="restaurant-name">Restaurant details</h1>
+    <p><a id="edit-link" hidden>Edit this restaurant</a></p>
+    <p id="restaurant-status" role="status" aria-live="polite"></p>
+    <dl id="restaurant-details"></dl>
+    <section id="menu-section" aria-labelledby="menu-heading" hidden>
+      <h2 id="menu-heading">Menu</h2>
+      <p id="menu-status" role="status" aria-live="polite"></p>
+      <button id="retry-menu" type="button" hidden>Retry menu</button>
+      <ul id="menu-list"></ul>
+    </section>
+  </main>
+  <script type="module" src="js/restaurant-details.js"></script>
+</body>
+</html>

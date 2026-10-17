@@ -16,7 +16,7 @@ from app.schemas.restaurant import (
 )
 from app.services import restaurant_service
 
-router = APIRouter()
+router = APIRouter(responses={500: {"description": "Stored data could not be read or written."}})
 
 
 @router.get(

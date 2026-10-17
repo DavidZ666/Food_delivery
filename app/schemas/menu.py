@@ -13,18 +13,18 @@ class MenuItemRead(BaseModel):
 class MenuItemCreate(BaseModel):
     name: str = Field(min_length=1)
     description: str = ""
-    price: float = Field(gt=0)
+    price: float = Field(gt=0, allow_inf_nan=False)
     category: str = Field(min_length=1)
     image: str = ""
     is_available: bool = True
 
 class MenuItemUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1)
-    description: str | None = None
-    price: float | None = Field(default=None, gt=0)
-    category: str | None = Field(default=None, min_length=1)
-    image: str | None = None
-    is_available: bool | None = None
+    name: str = Field(default=None, min_length=1)
+    description: str = Field(default=None)
+    price: float = Field(default=None, gt=0, allow_inf_nan=False)
+    category: str = Field(default=None, min_length=1)
+    image: str = Field(default=None)
+    is_available: bool = Field(default=None)
 
 class MenuError(BaseModel):
     detail: str
