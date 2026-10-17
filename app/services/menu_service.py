@@ -39,12 +39,9 @@ def update_menu_item(restaurant_id: int, product_id: int, changes: dict):
 
 
 def delete_menu_item(restaurant_id: int, product_id: int):
-    list_menu(restaurant_id)
-    products = product_repo.list_all()
-    remaining = [
-        p for p in products
-        if not (p["product_id"] == product_id and p["restaurant_id"] == restaurant_id)
-    ]
-    if len(remaining) == len(products):
-        raise MenuItemNotFound
-    product_repo.save_all(remaining)
+    if restaurant_repo.get_by_id(restaurant_id) is None:
+        raise RestaurantNotFound
+    try:
+        product_repo.delete_by_id(restaurant_id, product_id)
+    except product_repo.ProductRecordNotFoundError:
+        raise MenuItemNotFound from None

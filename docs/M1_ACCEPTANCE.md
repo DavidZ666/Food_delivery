@@ -83,10 +83,9 @@ No messages or review requests have been sent to teammates by this change.
 - Current implementation must pass its own remote CI, receive independent peer
   review and merge. Do not close #33 merely because local tests pass.
 - The JSON store supports one application worker on a local filesystem.
-  Menu creation/updates use the shared transaction (#46/#48); deletion still
-  reads/modifies before replacement and can lose concurrent writes (#62). Do not use this
-  as a multi-user production ordering service. Concurrency redesign is outside
-  these browsing acceptance criteria and remains recorded here.
+  All restaurant and menu writes use the shared transaction (#46/#48/#62).
+  Multiple workers or external writers sharing the directory are unsupported;
+  see the write decision for filesystem and durability limits.
 - Menu image URLs are optional external resources. Failed or unsafe-protocol
   images are hidden; item text remains usable.
 - Existing menu contract ignores unknown fields/client-supplied IDs and permits

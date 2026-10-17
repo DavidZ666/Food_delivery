@@ -103,7 +103,8 @@ def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: A
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remove a menu item",
     description="Remove an item owned by this restaurant. Return 204 with no body; "
-                "unknown resources return 404 and storage failures return 500.",
+                "unknown resources return 404. Deletion uses the shared storage "
+                "transaction; invalid stored products and storage failures return 500.",
     responses={204: {"description": "Removed successfully. Empty response body."},
                404: resource_error(MenuError, item=True)},
     openapi_extra=validation_example(),

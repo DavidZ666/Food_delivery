@@ -1,7 +1,7 @@
 from pydantic import TypeAdapter
 
 from app.core.config import get_data_dir
-from app.repositories.json_store import read_json, update_json, write_json
+from app.repositories.json_store import read_json, update_json
 from app.schemas.menu import MenuItemCreate, MenuItemRead, MenuItemUpdate
 
 
@@ -55,5 +55,13 @@ def update_by_id(restaurant_id: int, product_id: int, changes: dict) -> dict:
     return update_json(get_data_dir() / "products.json", apply)
 
 
-def save_all(products):
-    write_json(get_data_dir() / "products.json", products)
+def delete_by_id(restaurant_id: int, product_id: int) -> None:
+    """Remove the owned item without overwriting concurrent menu changes."""
+    def remove(records):
+        _validate_records(records)
+        for index, record in enumerate(records):
+            if record["product_id"] == product_id and record["restaurant_id"] == restaurant_id:
+                return [*records[:index], *records[index + 1:]], None
+        raise ProductRecordNotFoundError
+
+    update_json(get_data_dir() / "products.json", remove)

@@ -1,6 +1,6 @@
 # Atomic JSON writes
 
-Restaurant writes and menu creation/updates must preserve existing records, retain
+Restaurant and menu writes must preserve existing records, retain
 stable IDs and leave valid data behind when a write fails.
 
 Use a shared process lock around the entire read/modify/write transaction.
@@ -17,9 +17,8 @@ concurrency but falls outside the course's JSON/CSV persistence requirement.
 This choice supports one application process on a local filesystem. Multiple
 workers and external writers require a shared cross-process locking strategy.
 The directory entry is not synced, so power-loss durability is not guaranteed.
-Restaurant and menu creation/updates reuse this transaction with their own
-validation. Menu deletion still requires sequential requests with all other
-menu writes; it does not yet use this transaction (#62).
+Restaurant and menu creation, updates and deletion reuse this transaction with
+their own validation. All menu mutations share the same lock.
 Product IDs use the stored maximum plus one, so deleting the highest ID can
 allow reuse.
 
