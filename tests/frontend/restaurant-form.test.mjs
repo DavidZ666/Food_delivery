@@ -4,15 +4,19 @@ import { test } from "node:test";
 
 import {
   REQUIRED_FIELDS,
+  WEEKDAYS,
   fieldErrorsFromDetail,
+  restaurantToValues,
   toCreatePayload,
+  toUpdatePayload,
   validateRestaurantForm,
 } from "../../frontend/js/restaurant-form.js";
 
-// Shared with tests/test_frontend.py, which posts each payload to the API.
-const cases = JSON.parse(
-  readFileSync(new URL("./create-form-cases.json", import.meta.url), "utf8"),
-);
+// test_frontend.py sends these same payloads to the API
+const readCases = (file) =>
+  JSON.parse(readFileSync(new URL(file, import.meta.url), "utf8"));
+const cases = readCases("./create-form-cases.json");
+const updateCases = readCases("./update-form-cases.json");
 
 for (const { name, values, payload } of cases) {
   test(`toCreatePayload: ${name}`, () => {
@@ -50,4 +54,35 @@ test("fieldErrorsFromDetail maps FastAPI 422 locations to input names", () => {
 test("fieldErrorsFromDetail ignores non-validation details", () => {
   assert.deepEqual(fieldErrorsFromDetail("Restaurant not found"), {});
   assert.deepEqual(fieldErrorsFromDetail(null), {});
+});
+
+for (const { name, original, values, payload } of updateCases) {
+  test(`toUpdatePayload: ${name}`, () => {
+    assert.deepEqual(toUpdatePayload(original, values), payload);
+  });
+}
+
+test("toUpdatePayload sends nothing for an unedited form", () => {
+  for (const { original } of updateCases) {
+    assert.deepEqual(toUpdatePayload(original, restaurantToValues(original)), {});
+  }
+});
+
+test("restaurantToValues flattens nested fields and blanks missing ones", () => {
+  const values = restaurantToValues({
+    id: 7,
+    name: "Taco Spot",
+    cuisine: "Mexican",
+    location: { address: "10 Main St", city: "Kelowna", province: "BC", postal_code: "V1V 1V4" },
+    description: null,
+    hours: { monday: "09:00-17:00", tuesday: null },
+  });
+  assert.equal(values.name, "Taco Spot");
+  assert.equal(values["location.city"], "Kelowna");
+  assert.equal(values.description, "");
+  assert.equal(values.logo_url, "");
+  assert.equal(values["hours.monday"], "09:00-17:00");
+  assert.equal(values["hours.tuesday"], "");
+  assert.equal("id" in values, false);
+  assert.equal(Object.keys(values).length, REQUIRED_FIELDS.length + 2 + WEEKDAYS.length);
 });

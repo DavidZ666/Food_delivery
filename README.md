@@ -51,28 +51,36 @@ Press Ctrl+C in the terminal to stop the server.
 
 ## Frontend
 
-The same server also serves the frontend from `frontend/`, so no separate
-frontend server or extra install is needed. With the server running, open
-http://127.0.0.1:8000/app/ (http://127.0.0.1:8000/ redirects there).
+The frontend is in `frontend/` and gets served by the same FastAPI server, so
+you don't need to run anything extra. Start the server like normal and go to
+http://127.0.0.1:8000/app/ (or just http://127.0.0.1:8000/, it redirects).
 
-The pages are plain HTML and JavaScript modules. They call the REST API with
-relative paths such as `/restaurants`, so the pages and the API share one
-origin and no CORS configuration is required. Restaurant data always comes
-from the API; nothing is hard-coded in the pages.
+It's plain HTML and JavaScript. The pages call the API with paths like
+`/restaurants`, and since they're on the same server we didn't need any CORS
+setup. All the restaurant data comes from the API, nothing is hard-coded.
 
-| Page | Path | Uses |
+| Page | Path | API calls |
 |------|------|------|
-| Home | /app/ | Links to the other pages |
+| Home | /app/ | none, just links |
 | Create a restaurant | /app/create-restaurant.html | `POST /restaurants` |
+| Edit a restaurant | /app/edit-restaurant.html?id={restaurant_id} | `GET /restaurants`, `GET` + `PATCH /restaurants/{restaurant_id}` |
 
-The creation form checks required fields before sending, shows a pending state
-while saving, shows field errors returned by the API (HTTP 422) next to the
-matching inputs, and reports server or network failures. On success it shows
-the restaurant returned by the API, including its generated ID.
+**Create form:** checks the required fields first, then sends the request. If
+the API sends back a 422 the errors show up next to the fields they belong to.
+Server/network errors show at the bottom. When it works it shows the saved
+restaurant (with its new ID) and a link to edit it.
 
-Shared code lives in `frontend/js/api.js` (requests and error handling) and
-`frontend/js/restaurant-form.js` (validation, request bodies and mapping
-validation errors to inputs, with no DOM access so it can be unit tested).
+**Edit form:** pick a restaurant from the dropdown (or open it with `?id=`)
+and it loads into the form. Only the fields you changed get sent in the PATCH.
+If you clear an optional field (description, logo URL, or a day's hours) it
+sends `null` so it gets removed. Required fields can't be blank, and if you
+didn't change anything it just says so and doesn't send anything. Unknown IDs
+and errors are shown without wiping what you typed.
+
+The JS is split up so most of it can be tested:
+- `js/api.js` makes the requests and turns errors into an `ApiError`
+- `js/restaurant-form.js` has the validation and builds the request bodies (no DOM code, so the node tests can use it)
+- `js/form-ui.js` shows status messages and field errors
 
 ## API Endpoints
 
@@ -204,7 +212,7 @@ python -m pytest -v
 
 Starting the server separately is not required.
 
-Frontend logic is tested with Node.js 22 or newer, which needs no packages:
+The frontend tests need Node.js 22+ (no npm install needed):
 
 ```bash
 node --test "tests/frontend/*.test.mjs"
@@ -221,12 +229,11 @@ Tests cover:
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 - Restaurant creation, request validation, restart persistence, concurrent
   creation, invalid stored IDs, and failed writes that preserve original data.
-- Frontend serving, and that the creation form's inputs match the API's
-  `RestaurantCreate` schema (`tests/test_frontend.py`).
-- Frontend request bodies, validation, and handling of 422, 404, 500 and
-  network failures (`tests/frontend/`). The request bodies in
-  `tests/frontend/create-form-cases.json` are also posted to the API by
-  pytest, so the frontend and backend tests share one contract.
+- The frontend pages get served, and the form fields match the API's
+  `RestaurantCreate`/`RestaurantUpdate` models (`tests/test_frontend.py`).
+- The frontend JS: request bodies, validation, and 422/404/500/network errors
+  (`tests/frontend/`). The JSON files in `tests/frontend/` are used by both the
+  node tests and pytest, so if the form and the API stop matching a test fails.
 
 Tests use temporary files created with pytest's `tmp_path`.
 Backend tests use `monkeypatch` to temporarily set
@@ -235,8 +242,8 @@ Backend tests use `monkeypatch` to temporarily set
 ## Continuous Integration
 
 Pull requests and pushes to `main` automatically install the project
-dependencies and run the complete pytest suite and the frontend tests using
-GitHub Actions.
+dependencies and run the complete pytest suite (and the node frontend tests)
+using GitHub Actions.
 
 In **Actions**, select a CI run to view test counts and failing test names.
 Download the JUnit report from **Artifacts** as `pytest-results-python-3.14`

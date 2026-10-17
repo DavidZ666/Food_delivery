@@ -1,5 +1,25 @@
 # AI Use and Provenance
 
+## Restaurant update form (#51)
+
+- Student(s): Spencer Stephen (GitHub `SpencerS04`)
+- Artifact: `frontend/edit-restaurant.html`, `frontend/js/edit-restaurant.js`,
+  `frontend/js/form-ui.js`, `frontend/js/restaurant-form.js`, small changes to
+  the create page and home page, `tests/test_frontend.py`, `tests/frontend/`,
+  `README.md`
+- Label: AI-GENERATED
+- AI tool: Claude Code (Claude Opus 5.5)
+- Purpose: Edit form for existing restaurants (#51, part of #32).
+- Influence: Wrote the edit page and the logic that only sends changed fields
+  in the PATCH (cleared optional fields get sent as null). Moved the status and
+  error display code into `form-ui.js` so both forms use it. Also wrote the
+  tests and README section.
+- Validation: 232 pytest and 22 node tests passed locally. Tried it in the
+  browser on a copy of the data: edited a restaurant, checked only the changed
+  fields were sent, restarted the server and the changes were still there.
+  Also tried no changes, a blank name, unknown/invalid IDs and a fake 422, and
+  made sure the create form still worked.
+
 ## Response body failure handling (#55)
 
 - Student(s): Zihan Tao GitHub `freesialuo`
@@ -16,25 +36,22 @@
 ## Frontend skeleton and restaurant creation form (#50)
 
 - Student(s): Spencer Stephen (GitHub `SpencerS04`)
-- Artifact: `app/main.py`; `frontend/`; `tests/test_frontend.py`;
-  `tests/frontend/`; `.github/workflows/ci.yml`; `README.md`;
-  `docs/PROVENANCE.md`
+- Artifact: `app/main.py`, `frontend/`, `tests/test_frontend.py`,
+  `tests/frontend/`, `.github/workflows/ci.yml`, `README.md`
 - Label: AI-GENERATED
 - AI tool: Claude Code (Claude Opus 5.5)
-- Purpose: Serve a basic frontend from FastAPI and build the restaurant
-  creation form for #50 (part of #32).
-- Influence: Generated the StaticFiles mount, the shared API request helper,
-  the form logic and page, Python and Node.js tests, the CI step and the
-  documentation. Serving the frontend from the API's origin was chosen to avoid
-  a separate server and CORS configuration.
-- Validation: 201 pytest tests and 13 Node.js tests passed locally (Python
-  3.14.2, Node.js 22.15). The form was checked in a browser against a temporary
-  data directory: a created restaurant was shown with its new ID and was read
-  back after a restart; blank required fields were flagged; simulated 422 and
-  network-failure responses showed field and request errors.
+- Purpose: Get a basic frontend going and build the create restaurant form
+  (#50, part of #32).
+- Influence: Wrote the StaticFiles setup in `main.py`, the API helper, the
+  create form, the python and node tests, and the CI step for the node tests.
+  We serve the frontend from FastAPI so there's no second server and no CORS
+  setup.
+- Validation: 201 pytest and 13 node tests passed locally. Tried the form in
+  the browser on a copy of the data: created a restaurant, restarted and it
+  was still there, and checked blank fields, a fake 422 and a network error
+  all showed messages.
 - References: [FastAPI static files](https://fastapi.tiangolo.com/tutorial/static-files/),
-  [Node.js test runner](https://nodejs.org/api/test.html),
-  [MDN FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData).
+  [Node.js test runner](https://nodejs.org/api/test.html)
 
 ## Restaurant creation and persistent writes (#24, #25)
 
