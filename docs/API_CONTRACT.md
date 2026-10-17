@@ -152,22 +152,21 @@ restaurant is checked before item lookup. File access and JSON parsing errors ar
 not converted to empty lists. Rejected validation/ownership requests must not
 alter stored records.
 
-Menu creation and updates validate the stored product collection, response fields and
+Menu writes validate the stored product collection, response fields and
 creation field rules without coercing persisted types. Nonpositive, non-integer
 or duplicate product IDs are rejected with 500 before writing. Existing records,
-including extra metadata, are preserved. Reads and deletions do not
-uniformly validate stored products: for example, `products.json` containing `{}`
+including extra metadata, are preserved. Reads do not uniformly validate stored
+products: for example, `products.json` containing `{}`
 still reads as an empty menu. These checks do not establish integrity of every
 stored relationship.
 
 Writes retain Route → Service → Repository → JSON. `FOOD_DELIVERY_DATA_DIR` chooses
 the directory; required files must exist, and are not silently initialized.
-Restaurant writes and menu creation/updates serialize read/modify/write and atomically
+Restaurant and menu writes serialize read/modify/write and atomically
 replace files using the shared transaction. Concurrent creation requests within
 one process allocate unique product IDs and preserve records; concurrent updates
-preserve changes to fields they omit. Menu deletions still read/modify
-in the service before replacement and must remain sequential with all other menu
-writes until #62. Atomic replacement alone is not a transaction.
+preserve changes to fields they omit. Deletions preserve concurrent creations and
+updates through the same lock. Atomic replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
