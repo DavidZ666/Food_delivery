@@ -1,5 +1,21 @@
 # AI Use and Provenance
 
+## M1 API contract and OpenAPI (#27)
+
+- Student: Yihang Zhao (GitHub `DavidZ666`).
+- Label: AI-GENERATED.
+- AI tool: OpenAI Codex.
+- Artifacts: `docs/API_CONTRACT.md`, route metadata, `app/core/api_contract.py`,
+  `app/schemas/health.py`, `app/main.py`, `tests/test_api_contract.py`, README.
+- Purpose and influence: document the implemented M1 contract and limitations,
+  add executable request/response/error examples, preserve literal null values
+  in published examples, and test them against isolated runtime behavior.
+- Existing mutation, search, ID and ownership semantics are preserved.
+- Validation: 303 Python tests (including 40 contract cases), 30 Node tests,
+  and 11 actual Chrome browser tests passed locally. Representative data is
+  unchanged. PR creation and team agreement remain with the student and reviewers.
+
+
 ## Browsing review fixes (PR #58)
 
 - Student(s): Zihan Tao (GitHub `freesialuo`)

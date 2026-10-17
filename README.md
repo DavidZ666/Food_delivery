@@ -86,10 +86,21 @@ The JS is split up so most of it can be tested:
 
 ## API Endpoints
 
+See [the M1 API contract](docs/API_CONTRACT.md) for field rules, request/response
+examples, PATCH differences, errors, ID reuse and storage limits. `/docs` provides
+executable examples; `/openapi.json` provides their machine-readable schemas.
+
+The contract examples are exercised with isolated data:
+
+```bash
+python -m pytest tests/test_api_contract.py -v
+```
+
+
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
-| GET | /restaurants | Returns the restaurant list; optional `name` searches by name |
+| GET | /restaurants | Lists restaurants; optional `name` substring and `cuisine` exact-match filters |
 | POST | /restaurants | Creates a restaurant; returns HTTP 201 |
 | GET | /restaurants/{restaurant_id}/menu | Returns the restaurant menu |
 | POST | /restaurants/{restaurant_id}/menu | Creates a menu item |
@@ -97,6 +108,7 @@ The JS is split up so most of it can be tested:
 | DELETE | /restaurants/{restaurant_id}/menu/{product_id} | Removes a menu item |
 | GET | /restaurants/{restaurant_id}/menu/{product_id} | Returns a menu item belonging to the restaurant |
 | GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
+| PATCH | /restaurants/{restaurant_id} | Partially updates a restaurant and returns its complete representation |
 | GET | /docs | Opens the interactive API documentation |
 
 Open these URLs while the server is running:

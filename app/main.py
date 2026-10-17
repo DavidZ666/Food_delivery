@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import PROJECT_ROOT
+from app.core.api_contract import preserve_literal_openapi_examples
 from app.routes import health, menu, restaurants
 
 app = FastAPI()
@@ -36,3 +37,5 @@ def frontend_home():
 
 # Mounted last so API routes take precedence. Same origin, so no CORS needed.
 app.mount("/app", StaticFiles(directory=PROJECT_ROOT / "frontend", html=True), name="frontend")
+
+preserve_literal_openapi_examples(app, health.router, restaurants.router, menu.router)
