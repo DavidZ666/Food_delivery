@@ -1,11 +1,28 @@
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from math import isfinite
+
+from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import PROJECT_ROOT
 from app.routes import health, menu, restaurants
 
 app = FastAPI()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_response(_request: Request, exc: RequestValidationError):
+    # Invalid numeric input can itself be unrepresentable in a JSON error body.
+    return JSONResponse(
+        status_code=422,
+        content={"detail": jsonable_encoder(
+            exc.errors(),
+            custom_encoder={float: lambda value: value if isfinite(value) else str(value)},
+        )},
+    )
+
 
 app.include_router(health.router)
 app.include_router(restaurants.router)

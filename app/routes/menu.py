@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Path, Response, status
 from app.schemas.menu import MenuError, MenuItemRead, MenuItemCreate, MenuItemUpdate
 from app.services import menu_service
 
-router = APIRouter()
+router = APIRouter(responses={500: {"description": "Stored data could not be read or written."}})
 RestaurantId = Annotated[int, Path(description="Stored restaurant ID.")]
 ProductId = Annotated[int, Path(description="Stored product ID belonging to this restaurant.")]
 
@@ -49,6 +49,9 @@ def get_menu_item(restaurant_id: RestaurantId, product_id: ProductId):
     response_model=MenuItemRead,
     status_code=status.HTTP_201_CREATED,
     summary="Add a menu item",
+    description="Create an item with a generated ID under an existing restaurant. "
+                "Name and category are nonempty; price must be positive and finite. "
+                "Unknown fields and supplied IDs are ignored. Storage failures return 500.",
     responses={404: {"model": MenuError, "description": "Restaurant not found."}},
 )
 def create_menu_item(restaurant_id: RestaurantId, body: MenuItemCreate):
@@ -62,6 +65,10 @@ def create_menu_item(restaurant_id: RestaurantId, body: MenuItemCreate):
     "/restaurants/{restaurant_id}/menu/{product_id}",
     response_model=MenuItemRead,
     summary="Update a menu item",
+    description="Update supplied fields of an item belonging to this restaurant. "
+                "Omitted fields are preserved; explicit nulls are rejected. "
+                "Empty or unknown-only objects are no-ops; IDs cannot be changed. "
+                "Price must be positive and finite. Storage failures return 500.",
     responses={404: {"model": MenuError, "description": "Restaurant or menu item not found."}},
 )
 def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: MenuItemUpdate):
@@ -78,6 +85,8 @@ def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: M
     "/restaurants/{restaurant_id}/menu/{product_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remove a menu item",
+    description="Remove an item owned by this restaurant. Return 204 with no body; "
+                "unknown resources return 404 and storage failures return 500.",
     responses={404: {"model": MenuError, "description": "Restaurant or menu item not found."}},
 )
 def delete_menu_item(restaurant_id: RestaurantId, product_id: ProductId):

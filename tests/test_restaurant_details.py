@@ -99,7 +99,7 @@ def test_detail_openapi_documents_contract(client):
     assert parameter["schema"]["type"] == "integer"
     assert parameter["description"]
     responses = operation["responses"]
-    assert set(responses) == {"200", "404", "422"}
+    assert set(responses) == {"200", "404", "422", "500"}
     assert responses["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/RestaurantRead"
     }
