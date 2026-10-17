@@ -35,7 +35,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/Ma
 - Actual headless Chrome with FastAPI: **9 passed**.
 - Representative JSON file byte checks passed in every browser fixture.
 - These results are from the implementation prepared on 2026-10-17;
-  remote CI for the new changes is reported separately in the PR.
+  remote CI and independent review for the new changes remain pending.
 
 ## Acceptance mapping
 
@@ -93,4 +93,3 @@ No messages or review requests have been sent to teammates by this change.
   empty PATCH as a no-op. This change preserves that behavior; it rejects
   explicit null updates and nonfinite prices to avoid corrupting required fields.
 - No authentication, checkout or delivery flow is claimed by these issues.
-
