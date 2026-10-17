@@ -321,3 +321,30 @@ Menu updates omit fields to preserve them. Explicit nulls and nonfinite prices
 are rejected with 422 before writing, as these values cannot be represented by
 the menu response schema. Empty updates remain no-ops; supplied IDs and unknown
 fields remain ignored to preserve the existing API contract.
+
+### Menu update persistence (#49)
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/restaurants/1/menu/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"price":6.5,"is_available":false}'
+```
+
+Use IDs returned by the API. A successful update returns the complete item
+(200); menu and item reads retain the updated values, IDs and restaurant
+ownership after restart. Unknown restaurants, items or wrong-owner items return
+404. Invalid inputs return 422. Rejected requests and failures before file
+replacement preserve both stored collections; storage failures return 500.
+See [the API contract](docs/API_CONTRACT.md) for field rules and storage limits.
+
+Run the focused acceptance checks with:
+
+```bash
+python -m pytest tests/test_menu_update_persistence.py tests/test_api_contract.py -v
+```
+
+The tests use temporary data, read back updates in a fresh Python process and
+inject temporary-file, serialization and replacement failures. They also check
+partial updates, no-ops, unchanged ownership and retry after a failed write.
+Menu writes currently require sequential requests: concurrent writes can lose
+updates. Shared transaction work remains in #48.

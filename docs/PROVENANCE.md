@@ -1,5 +1,16 @@
 # AI Use and Provenance
 
+## Menu update persistence acceptance (#49)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `tests/test_menu_update_persistence.py`, `README.md`.
+- Purpose and influence: add isolated restart, ownership, rejected-request and
+  write-failure/retry tests; document the tested contract and concurrency limit.
+- Validation: 336 Python, 30 Node and 11 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [pytest monkeypatch](https://docs.pytest.org/en/stable/how-to/monkeypatch.html).
+
 ## Storage contract review fix (PR #59)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
