@@ -1,5 +1,17 @@
 # AI Use and Provenance
 
+## Menu update transaction (#48)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: menu repository/service/route, update transaction/persistence tests,
+  README, API contract, write decision and acceptance docs.
+- Purpose and influence: serialize menu updates with creation, share stored
+  product validation and test concurrent partial updates and failed-write cleanup.
+- Validation: 374 Python, 30 Node and 11 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [Python locks and context managers](https://docs.python.org/3/library/threading.html#using-locks-conditions-and-semaphores-in-the-with-statement).
+
 ## Menu creation transaction (#46)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

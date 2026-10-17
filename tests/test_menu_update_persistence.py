@@ -115,7 +115,7 @@ def test_rejected_update_preserves_both_stores(client, data_dir, menu_store,
     assert client.get("/restaurants/101/menu/8").json() == menu_store[0]
 
 
-@pytest.mark.parametrize("stage", ["temporary-file", "serialization", "replacement"])
+@pytest.mark.parametrize("stage", ["temporary-file", "serialization", "sync", "replacement"])
 def test_failed_update_preserves_data_and_allows_retry(data_dir, menu_store,
                                                       monkeypatch, stage):
     before = storage_bytes(data_dir)
@@ -128,8 +128,9 @@ def test_failed_update_preserves_data_and_allows_retry(data_dir, menu_store,
         raise OSError("Simulated menu write failure")
 
     target, attribute = {
-        "temporary-file": (json_store.tempfile, "mkstemp"),
+        "temporary-file": (json_store, "NamedTemporaryFile"),
         "serialization": (json_store.json, "dump"),
+        "sync": (json_store.os, "fsync"),
         "replacement": (json_store.os, "replace"),
     }[stage]
     with TestClient(app, raise_server_exceptions=False) as http:
@@ -140,6 +141,7 @@ def test_failed_update_preserves_data_and_allows_retry(data_dir, menu_store,
         assert response.status_code == 500
         assert response.text == "Internal Server Error"
         assert storage_bytes(data_dir) == before
+        assert not list(data_dir.glob("*.tmp"))
         assert http.get("/restaurants/101/menu/8").json() == menu_store[0]
 
         retry = http.patch("/restaurants/101/menu/8", json=CHANGES)
@@ -149,3 +151,4 @@ def test_failed_update_preserves_data_and_allows_retry(data_dir, menu_store,
     stored = json.loads((data_dir / "products.json").read_text(encoding="utf-8"))
     assert stored == [retry.json(), menu_store[1], menu_store[2]]
     assert (data_dir / "restaurants.json").read_bytes() == before[0]
+    assert not list(data_dir.glob("*.tmp"))
