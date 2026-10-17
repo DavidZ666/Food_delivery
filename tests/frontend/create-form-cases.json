@@ -1,0 +1,68 @@
+[
+  {
+    "name": "required fields only, with surrounding whitespace",
+    "values": {
+      "name": "  Taco Spot ",
+      "cuisine": "Mexican",
+      "description": "",
+      "logo_url": "   ",
+      "location.address": " 10 Main St",
+      "location.city": "Kelowna",
+      "location.province": "BC",
+      "location.postal_code": "V1V 1V4 ",
+      "hours.monday": "",
+      "hours.tuesday": "",
+      "hours.wednesday": "",
+      "hours.thursday": "",
+      "hours.friday": "",
+      "hours.saturday": "",
+      "hours.sunday": " "
+    },
+    "payload": {
+      "name": "Taco Spot",
+      "cuisine": "Mexican",
+      "location": {
+        "address": "10 Main St",
+        "city": "Kelowna",
+        "province": "BC",
+        "postal_code": "V1V 1V4"
+      }
+    }
+  },
+  {
+    "name": "all fields, some hours",
+    "values": {
+      "name": "Café 新",
+      "cuisine": "Fusion",
+      "description": "Lunch and dinner",
+      "logo_url": "https://example.com/logo.png",
+      "location.address": "3 Main St",
+      "location.city": "Kelowna",
+      "location.province": "BC",
+      "location.postal_code": "V1V 1V3",
+      "hours.monday": "09:00-17:00",
+      "hours.tuesday": "",
+      "hours.wednesday": "",
+      "hours.thursday": "",
+      "hours.friday": "09:00-22:00",
+      "hours.saturday": "",
+      "hours.sunday": ""
+    },
+    "payload": {
+      "name": "Café 新",
+      "cuisine": "Fusion",
+      "location": {
+        "address": "3 Main St",
+        "city": "Kelowna",
+        "province": "BC",
+        "postal_code": "V1V 1V3"
+      },
+      "description": "Lunch and dinner",
+      "logo_url": "https://example.com/logo.png",
+      "hours": {
+        "monday": "09:00-17:00",
+        "friday": "09:00-22:00"
+      }
+    }
+  }
+]
