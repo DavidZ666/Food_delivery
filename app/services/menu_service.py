@@ -24,13 +24,9 @@ def get_menu_item(restaurant_id: int, product_id: int):
     raise MenuItemNotFound
 
 def create_menu_item(restaurant_id: int, data: dict):
-    list_menu(restaurant_id)
-    products = product_repo.list_all()
-    next_id = max((p["product_id"] for p in products), default=0) + 1
-    item = {"product_id": next_id, "restaurant_id": restaurant_id, **data}
-    products.append(item)
-    product_repo.save_all(products)
-    return item
+    if restaurant_repo.get_by_id(restaurant_id) is None:
+        raise RestaurantNotFound
+    return product_repo.create(restaurant_id, data)
 
 
 def update_menu_item(restaurant_id: int, product_id: int, changes: dict):

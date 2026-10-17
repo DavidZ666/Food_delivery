@@ -1,7 +1,7 @@
-# Atomic JSON writes for restaurant creation
+# Atomic JSON writes
 
-Restaurant creation must preserve existing records, allocate stable IDs and
-leave valid data behind when a write fails.
+Restaurant writes and menu creation must preserve existing records, retain
+stable IDs and leave valid data behind when a write fails.
 
 Use a shared process lock around the entire read/modify/write transaction.
 Validate persisted records and unique positive integer IDs before allocating
@@ -17,8 +17,11 @@ concurrency but falls outside the course's JSON/CSV persistence requirement.
 This choice supports one application process on a local filesystem. Multiple
 workers and external writers require a shared cross-process locking strategy.
 The directory entry is not synced, so power-loss durability is not guaranteed.
-Future update and menu writes should reuse the transaction and supply their
-own validation. Deletion and ID reuse policy remain future work.
+Restaurant creation/updates and menu creation reuse this transaction with
+their own validation. Menu updates and deletions still require sequential
+requests with all other menu writes; they do not yet use this transaction.
+Product IDs use the stored maximum plus one, so deleting the highest ID can
+allow reuse.
 
 Isolated tests cover restart persistence, concurrent creation, malformed
 storage, invalid IDs, and failures during serialization, sync and replacement.

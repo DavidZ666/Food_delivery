@@ -152,19 +152,22 @@ restaurant is checked before item lookup. File access and JSON parsing errors ar
 not converted to empty lists. Rejected validation/ownership requests must not
 alter stored records.
 
-Stored records are not uniformly validated. Response models validate returned
-records, while menu mutations do not validate existing products. For example,
-`products.json` containing `{}` currently reads as an empty menu, and creating a
-menu item can preserve an existing item with an invalid price. A successful
-response is not a storage-integrity check.
+Menu creation validates the stored product collection, response fields and
+creation field rules without coercing persisted types. Nonpositive, non-integer
+or duplicate product IDs are rejected with 500 before writing. Existing records,
+including extra metadata, are preserved. Reads, updates and deletions do not
+uniformly validate stored products: for example, `products.json` containing `{}`
+still reads as an empty menu. These checks do not establish integrity of every
+stored relationship.
 
 Writes retain Route → Service → Repository → JSON. `FOOD_DELIVERY_DATA_DIR` chooses
 the directory; required files must exist, and are not silently initialized.
-Restaurant transactions serialize read/modify/write and atomically replace files.
-Menu mutations currently read/modify in the service and then replace the product
-file through the repository; concurrent menu writes can lose updates or choose
-the same new ID. Atomic replacement alone is not a transaction. Shared transaction
-work belongs to #46/#48; this documentation does not claim it is implemented.
+Restaurant writes and menu creation serialize read/modify/write and atomically
+replace files using the shared transaction. Concurrent creation requests within
+one process allocate unique product IDs and preserve records. Menu updates and
+deletions still read/modify in the service before replacement; they must remain
+sequential with all other menu writes to avoid lost updates. Shared update
+transaction work remains in #48. Atomic replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
