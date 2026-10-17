@@ -49,6 +49,46 @@ test("failed detail and item requests show errors instead of misleading content"
   await expect(page.locator("#item-status")).toContainText("Could not reach the server");
 });
 
+test("submitted filters survive reload and browser back", async ({ page, app }) => {
+  await page.goto(`${app.url}/app/`);
+  await expect(page.locator("#restaurant-list li")).toHaveCount(2);
+  await page.getByLabel("Restaurant name").fill("mc");
+  await page.getByLabel("Cuisine", { exact: true }).selectOption("Fast Food");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.locator("#restaurant-list li")).toHaveCount(1);
+  await expect(page).toHaveURL(`${app.url}/app/?name=mc&cuisine=Fast+Food`);
+
+  await page.reload();
+  await expect(page.getByRole("status")).toHaveText("1 restaurant(s) found.");
+  await expect(page.getByLabel("Restaurant name")).toHaveValue("mc");
+  await expect(page.getByLabel("Cuisine", { exact: true })).toHaveValue("Fast Food");
+  await expect(page.locator("#restaurant-list li")).toHaveCount(1);
+
+  // Browser-restored drafts must not override the submitted URL filters.
+  await page.getByLabel("Restaurant name").fill("unsent draft");
+  await page.getByRole("link", { name: "McDonalds", exact: true }).click();
+  await expect(page.locator("#restaurant-name")).toHaveText("McDonalds");
+  await page.goBack();
+  await expect(page.getByRole("status")).toHaveText("1 restaurant(s) found.");
+  await expect(page.getByLabel("Restaurant name")).toHaveValue("mc");
+  await expect(page.getByLabel("Cuisine", { exact: true })).toHaveValue("Fast Food");
+  await expect(page.locator("#restaurant-list li")).toHaveCount(1);
+  await expect(page.locator("#restaurant-list")).toContainText("McDonalds");
+});
+
+test("URL filters keep unmatched cuisines visible and can be cleared", async ({ page, app }) => {
+  await page.goto(`${app.url}/app/?name=mc&cuisine=Italian`);
+  await expect(page.getByRole("status")).toHaveText("No restaurants match your search.");
+  await expect(page.getByLabel("Restaurant name")).toHaveValue("mc");
+  await expect(page.getByLabel("Cuisine", { exact: true })).toHaveValue("Italian");
+  await expect(page.locator("#restaurant-list li")).toHaveCount(0);
+  await page.getByLabel("Restaurant name").fill("");
+  await page.getByLabel("Cuisine", { exact: true }).selectOption("");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(`${app.url}/app/`);
+  await expect(page.locator("#restaurant-list li")).toHaveCount(2);
+});
+
 test("a slow old search cannot overwrite newer search results", async ({ page, app }) => {
   await page.goto(`${app.url}/app/`);
   await expect(page.locator("#restaurant-list li")).toHaveCount(2);

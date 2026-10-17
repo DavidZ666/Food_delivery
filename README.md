@@ -287,6 +287,7 @@ by name, select a cuisine, and click Search. Select a restaurant for its details
 and menu, then select a menu item. Each page reports loading, empty and failure
 states. Unavailable items remain visible. Restaurant details link to the existing
 edit form; menu errors can be retried without losing restaurant details.
+Submitted filters stay in the URL and are restored on reload and browser back.
 
 Browser tests require Node.js 22+ and an installed Python environment:
 

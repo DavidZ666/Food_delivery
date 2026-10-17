@@ -9,7 +9,15 @@ const searchButton = searchForm.querySelector('button[type="submit"]');
 let latestRequest = 0;
 let cuisinesLoaded = false;
 
+function selectCuisine(value) {
+  if (value && ![...cuisineSelect.options].some((option) => option.value === value)) {
+    cuisineSelect.add(new Option(value, value));
+  }
+  cuisineSelect.value = value;
+}
+
 function populateCuisines(restaurants) {
+  const selectedCuisine = cuisineSelect.value;
   const cuisines = [...new Set(
     restaurants.map((restaurant) => restaurant.cuisine)
   )].sort((a, b) => a.localeCompare(b));
@@ -19,6 +27,7 @@ function populateCuisines(restaurants) {
   for (const cuisine of cuisines) {
     cuisineSelect.add(new Option(cuisine, cuisine));
   }
+  selectCuisine(selectedCuisine);
 }
 
 function renderRestaurants(restaurants) {
@@ -60,6 +69,9 @@ async function loadRestaurants() {
 
   const query = params.toString();
   const path = query ? `/restaurants?${query}` : "/restaurants";
+  const url = new URL(window.location.href);
+  url.search = query;
+  history.replaceState(null, "", url);
 
   statusMessage.textContent = "Loading restaurants...";
   restaurantList.replaceChildren();
@@ -121,4 +133,12 @@ searchForm.addEventListener("submit", (event) => {
   loadRestaurants();
 });
 
-loadRestaurants();
+window.addEventListener("pageshow", () => {
+  // History may restore input drafts after pageshow; use the submitted URL filters.
+  setTimeout(() => {
+    const params = new URLSearchParams(window.location.search);
+    searchForm.elements.namedItem("name").value = params.get("name") ?? "";
+    selectCuisine(params.get("cuisine") ?? "");
+    loadRestaurants();
+  }, 0);
+});

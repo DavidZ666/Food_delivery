@@ -68,6 +68,29 @@ def test_nonfinite_prices_are_rejected_before_writing(client, data_dir, method, 
     assert path.read_bytes() == before
 
 
+@pytest.mark.parametrize("price", ["1e500", "-1e500", "NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize("method", ["post", "patch"])
+def test_numeric_nonfinite_prices_return_serializable_validation_errors(client, data_dir, method, price):
+    path = data_dir / "products.json"
+    path.write_text("[]")
+    item = client.post("/restaurants/101/menu", json={"name": "Soup", "category": "Main", "price": 5}).json()
+    before = path.read_bytes()
+    url = "/restaurants/101/menu"
+    if method == "patch":
+        url += f"/{item['product_id']}"
+    response = getattr(client, method)(
+        url, content='{"name":"Soup","category":"Main","price":' + price + '}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 422
+    error = response.json()["detail"][0]
+    assert error["loc"] == ["body", "price"]
+    assert error["type"] == "finite_number"
+    assert isinstance(error["input"], str)
+    assert path.read_bytes() == before
+    assert client.get(f"/restaurants/101/menu/{item['product_id']}").json() == item
+
+
 @pytest.mark.parametrize("method,path,body", [
     ("post", "/restaurants/101/menu", {"name": "Soup", "category": "Main", "price": 5}),
     ("patch", "/restaurants/101/menu/1", {"price": 8}),

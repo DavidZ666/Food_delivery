@@ -1,5 +1,21 @@
 # AI Use and Provenance
 
+## Browsing review fixes (PR #58)
+
+- Student(s): Zihan Tao (GitHub `freesialuo`)
+- Artifacts: `app/main.py`, `frontend/js/restaurants.js`, related API/browser
+  regression tests, and `README.md`.
+- Label: AI-GENERATED
+- AI tool: OpenAI Codex
+- Purpose and influence: Safely encode nonfinite validation inputs in 422
+  responses and restore submitted search filters after reload or browser back.
+- Validation: 263 pytest, 30 Node.js and 11 browser tests passed; representative
+  data remained unchanged; `git diff --check` passed.
+- References: [FastAPI error handlers](https://fastapi.tiangolo.com/tutorial/handling-errors/),
+  [JSON encoding](https://fastapi.tiangolo.com/reference/encoders/),
+  [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API),
+  [navigation event order](https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event#when_popstate_is_sent).
+
 ## Customer browsing and M1 acceptance (#29, #33, #41, #42)
 
 - Student: Yihang Zhao (GitHub `DavidZ666`).
