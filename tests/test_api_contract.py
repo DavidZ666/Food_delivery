@@ -62,10 +62,20 @@ def test_documented_success_examples_execute(client, data_dir, contract, method,
         assert response.json() == documented["content"]["application/json"]["example"]
 
 
-@pytest.mark.parametrize("method,path,status", OPERATIONS[1:])
-def test_documented_storage_failures_match_actual_format(data_dir, contract, method, path, status):
+@pytest.mark.parametrize("method,path,status,filename", [
+    (*entry, filename)
+    for entry in OPERATIONS[1:]
+    for filename in ("restaurants.json", "products.json")
+    if filename == "restaurants.json" or "/menu" in entry[1]
+])
+@pytest.mark.parametrize("failure", ["missing", "malformed"])
+def test_documented_storage_failures_match_actual_format(data_dir, contract, method, path, status, filename, failure):
     operation = contract["paths"][path][method]
-    (data_dir / "restaurants.json").unlink()
+    storage = data_dir / filename
+    if failure == "missing":
+        storage.unlink()
+    else:
+        storage.write_text("{invalid")
     with TestClient(app, raise_server_exceptions=False) as http:
         response = http.request(method, url(path), json=request_body(operation))
     assert response.status_code == 500
@@ -73,6 +83,27 @@ def test_documented_storage_failures_match_actual_format(data_dir, contract, met
     media = operation["responses"]["500"]["content"]["text/plain"]
     assert media["schema"] == {"type": "string"}
     assert response.text == media["example"]
+
+
+def test_empty_product_object_currently_reads_as_empty_menu(client, data_dir, contract):
+    storage = data_dir / "products.json"
+    storage.write_text("{}")
+    response = client.get("/restaurants/1/menu")
+    assert response.status_code == 200
+    assert response.json() == []
+    assert storage.read_text() == "{}"
+
+
+def test_menu_creation_does_not_validate_existing_products(client, data_dir, contract):
+    storage = data_dir / "products.json"
+    existing = {**json.loads(storage.read_text())[0], "price": "invalid"}
+    storage.write_text(json.dumps([existing]))
+    operation = contract["paths"]["/restaurants/{restaurant_id}/menu"]["post"]
+    response = client.post("/restaurants/1/menu", json=request_body(operation))
+    assert response.status_code == 201
+    expected = {**operation["responses"]["201"]["content"]["application/json"]["example"], "product_id": 2}
+    assert response.json() == expected
+    assert json.loads(storage.read_text()) == [existing, expected]
 
 
 @pytest.mark.parametrize("method,path,status", [entry for entry in OPERATIONS if "{" in entry[1]])

@@ -20,7 +20,10 @@ ITEM_READ = {"product_id": 1, "restaurant_id": 1, **ITEM_CREATE}
 ITEM_PATCH = {"price": 6.5, "is_available": False}
 
 STORAGE_FAILURE = {
-    "description": "Missing, malformed or invalid storage, or an I/O failure. No empty-success fallback.",
+    "description": (
+        "File access, JSON parsing or write failure, or a stored-data error "
+        "detected while handling the request. Stored records are not uniformly validated."
+    ),
     "content": {"text/plain": {
         "schema": {"type": "string"}, "example": "Internal Server Error",
     }},

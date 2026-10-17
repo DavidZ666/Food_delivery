@@ -141,15 +141,22 @@ creation to reuse it. There is no tombstone or monotonic sequence allocator.
 | Missing restaurant | 404 `{"detail":"Restaurant not found"}` |
 | Missing item or item belonging to a different restaurant | 404 `{"detail":"Menu item not found"}` |
 | Invalid body/path | 422 with a `detail` array of validation errors |
-| Missing/malformed files, invalid persisted data or I/O failure | 500, plain text `Internal Server Error` |
+| File access, JSON parsing or write failure, or a detected stored-data error | 500, plain text `Internal Server Error` |
 
 422 entries include `loc`, `msg`, `type`, and may include `input`/`ctx`. An invalid
 restaurant path ID has location `["path","restaurant_id"]`; a bad price has
 `["body","price"]`. Nonfinite numeric inputs are serialized safely in errors.
 Request validation runs before resource lookup, so an invalid body can produce
 422 even when its restaurant ID does not exist. For valid menu requests the
-restaurant is checked before item lookup. Reads never turn storage errors into
-empty lists. Rejected validation/ownership requests must not alter stored records.
+restaurant is checked before item lookup. File access and JSON parsing errors are
+not converted to empty lists. Rejected validation/ownership requests must not
+alter stored records.
+
+Stored records are not uniformly validated. Response models validate returned
+records, while menu mutations do not validate existing products. For example,
+`products.json` containing `{}` currently reads as an empty menu, and creating a
+menu item can preserve an existing item with an invalid price. A successful
+response is not a storage-integrity check.
 
 Writes retain Route → Service → Repository → JSON. `FOOD_DELIVERY_DATA_DIR` chooses
 the directory; required files must exist, and are not silently initialized.

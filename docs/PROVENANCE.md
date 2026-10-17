@@ -1,5 +1,17 @@
 # AI Use and Provenance
 
+## Storage contract review fix (PR #59)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `app/core/api_contract.py`, `docs/API_CONTRACT.md`,
+  `tests/test_api_contract.py`.
+- Purpose and influence: correct storage-validation guarantees and cover missing
+  files, malformed JSON and existing menu-validation limits with isolated tests.
+- Validation: 324 Python and 30 Node tests passed; representative data unchanged;
+  `git diff --check` passed.
+- Reference: [FastAPI additional responses](https://fastapi.tiangolo.com/advanced/additional-responses/).
+
 ## M1 API contract and OpenAPI (#27)
 
 - Student: Yihang Zhao (GitHub `DavidZ666`).
