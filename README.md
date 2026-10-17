@@ -49,12 +49,38 @@ The application runs at http://127.0.0.1:8000.
 
 Press Ctrl+C in the terminal to stop the server.
 
+## Frontend
+
+The same server also serves the frontend from `frontend/`, so no separate
+frontend server or extra install is needed. With the server running, open
+http://127.0.0.1:8000/app/ (http://127.0.0.1:8000/ redirects there).
+
+The pages are plain HTML and JavaScript modules. They call the REST API with
+relative paths such as `/restaurants`, so the pages and the API share one
+origin and no CORS configuration is required. Restaurant data always comes
+from the API; nothing is hard-coded in the pages.
+
+| Page | Path | Uses |
+|------|------|------|
+| Home | /app/ | Links to the other pages |
+| Create a restaurant | /app/create-restaurant.html | `POST /restaurants` |
+
+The creation form checks required fields before sending, shows a pending state
+while saving, shows field errors returned by the API (HTTP 422) next to the
+matching inputs, and reports server or network failures. On success it shows
+the restaurant returned by the API, including its generated ID.
+
+Shared code lives in `frontend/js/api.js` (requests and error handling) and
+`frontend/js/restaurant-form.js` (validation, request bodies and mapping
+validation errors to inputs, with no DOM access so it can be unit tested).
+
 ## API Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /health | Returns HTTP 200 and `{"status": "ok"}` |
-| GET | /restaurants | Returns the restaurant list |
+| GET | /restaurants | Returns the restaurant list; optional `name` searches by name |
+| POST | /restaurants | Creates a restaurant; returns HTTP 201 |
 | GET | /restaurants/{restaurant_id}/menu | Returns the restaurant menu |
 | GET | /restaurants/{restaurant_id}/menu/{product_id} | Returns a menu item belonging to the restaurant |
 | GET | /restaurants/{restaurant_id} | Returns details for a stored restaurant ID |
@@ -66,6 +92,41 @@ Open these URLs while the server is running:
 - http://127.0.0.1:8000/restaurants
 - http://127.0.0.1:8000/docs
 
+### Create a restaurant
+
+Send `POST /restaurants` with the required `name`, `cuisine` and `location`
+(address, city, province, postal_code). Required text is trimmed and must be
+nonblank. Optional `description`, `logo_url` and `hours` use the existing
+restaurant response fields. Hours contain optional weekday strings.
+
+```bash
+curl -X POST http://127.0.0.1:8000/restaurants \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"New Café","cuisine":"Fusion","location":{"address":"3 Main St","city":"Kelowna","province":"BC","postal_code":"V1V 1V3"}}'
+```
+
+Success returns HTTP 201 with the persisted restaurant and its generated `id`.
+IDs start at 1 for empty storage and otherwise use the largest stored ID plus
+one. Existing records and menu relationships are preserved. The new record
+appears in `GET /restaurants`, including after an application restart.
+
+Missing or invalid fields, unknown fields (including nested fields), and
+client-supplied IDs return HTTP 422 without changing storage. Missing files,
+invalid stored records or IDs, and write failures return HTTP 500; storage is
+not silently initialized. See `/docs` for request and response schemas.
+
+### Search and read restaurants
+
+Search by a literal substring of the restaurant name:
+
+```bash
+curl --get --data-urlencode "name=Mc" http://127.0.0.1:8000/restaurants
+```
+
+Search matches restaurant names only, ignoring case and surrounding query
+whitespace. Punctuation is literal. Omitted or blank queries return the full
+list; no matches return HTTP 200 with `[]`.
+
 Use an integer `id` from the restaurant list to retrieve its details:
 
 ```bash
@@ -74,6 +135,37 @@ curl http://127.0.0.1:8000/restaurants/1
 
 The endpoint returns the same fields as the restaurant list. Unknown IDs
 return HTTP 404; non-integer IDs return HTTP 422.
+
+### Filter restaurants by cuisine
+
+Use the optional `cuisine` query parameter to filter restaurants:
+
+```bash
+curl --get \
+  --data-urlencode "cuisine=Fast Food" \
+  http://127.0.0.1:8000/restaurants
+```
+
+Cuisine filtering uses a case-insensitive exact match. Surrounding
+query whitespace is ignored. An omitted or blank cuisine parameter
+does not restrict the results.
+
+Name search and cuisine filtering can be combined:
+
+```bash
+curl --get \
+  --data-urlencode "name=mc" \
+  --data-urlencode "cuisine=Fast Food" \
+  http://127.0.0.1:8000/restaurants
+```
+
+When both parameters are supplied, a restaurant must match both.
+Name search remains a case-insensitive literal substring match.
+Results retain storage order and the existing restaurant fields.
+
+No matches or an empty restaurant collection return HTTP 200 with `[]`.
+Reads do not modify stored data. Missing or malformed storage remains
+a server error rather than an empty search result.
 
 ## Data and Configuration
 
@@ -88,6 +180,14 @@ Menu requests also require `products.json` in the same directory.
 The restaurant request follows this path:
 
 Route → Service → Repository → JSON file
+
+Writes serialize the complete read/modify/write operation within one process.
+They sync a temporary file in the data directory before atomically replacing
+`restaurants.json`; failures before replacement preserve the original file.
+Run **one application worker** against a local data directory. Multiple
+processes or external writers sharing that directory are unsupported.
+Atomic replacement prevents partial JSON; power-loss durability of the
+directory entry is not guaranteed. See [the write decision](docs/decisions/json-writes.md).
 
 The route handles HTTP requests and declares the Pydantic response
 model. The service delegates to the repository, which reads the
@@ -104,14 +204,29 @@ python -m pytest -v
 
 Starting the server separately is not required.
 
+Frontend logic is tested with Node.js 22 or newer, which needs no packages:
+
+```bash
+node --test "tests/frontend/*.test.mjs"
+```
+
 Tests cover:
 
 - The health endpoint.
 - The restaurant-list endpoint, including optional field support.
 - Restaurant details and invalid or unknown IDs.
 - Restaurant repository data loading.
+- Name search and empty results.
 - Menu browsing, item ownership and missing resources.
 - Failure cases: missing data file, invalid JSON, and missing required fields.
+- Restaurant creation, request validation, restart persistence, concurrent
+  creation, invalid stored IDs, and failed writes that preserve original data.
+- Frontend serving, and that the creation form's inputs match the API's
+  `RestaurantCreate` schema (`tests/test_frontend.py`).
+- Frontend request bodies, validation, and handling of 422, 404, 500 and
+  network failures (`tests/frontend/`). The request bodies in
+  `tests/frontend/create-form-cases.json` are also posted to the API by
+  pytest, so the frontend and backend tests share one contract.
 
 Tests use temporary files created with pytest's `tmp_path`.
 Backend tests use `monkeypatch` to temporarily set
@@ -120,7 +235,8 @@ Backend tests use `monkeypatch` to temporarily set
 ## Continuous Integration
 
 Pull requests and pushes to `main` automatically install the project
-dependencies and run the complete pytest suite using GitHub Actions.
+dependencies and run the complete pytest suite and the frontend tests using
+GitHub Actions.
 
 In **Actions**, select a CI run to view test counts and failing test names.
 Download the JUnit report from **Artifacts** as `pytest-results-python-3.14`
@@ -137,8 +253,9 @@ app/
 ├── repositories/     # JSON data access
 ├── schemas/          # Pydantic response models
 └── core/             # Data-directory configuration
+frontend/             # HTML, CSS and JavaScript served at /app/
 data/                 # Representative JSON data
-tests/                # Automated tests
+tests/                # Automated tests (tests/frontend/ for JavaScript)
 requirements.txt      # Python dependencies
 README.md             # Setup, usage, and collaboration instructions
 ```
