@@ -9,14 +9,36 @@ class RestaurantNotFoundError(LookupError):
     """The requested restaurant does not exist in the stored collection."""
 
 
-def list_restaurants(name: str | None = None):
+def list_restaurants(
+    name: str | None = None,
+    cuisine: str | None = None,
+):
+
     restaurants = restaurant_repo.list_all()
-    query = name.strip().casefold() if name is not None else ""
-    if not query:
-        return restaurants
+
+    name_query = (
+        name.strip().casefold()
+        if name is not None
+        else ""
+    )
+
+    cuisine_query = (
+        cuisine.strip().casefold()
+        if cuisine is not None
+        else ""
+    )
+
     return [
-        restaurant for restaurant in restaurants
-        if query in restaurant["name"].casefold()
+        restaurant
+        for restaurant in restaurants
+        if (
+            not name_query
+            or name_query in restaurant["name"].casefold()
+        )
+        and (
+            not cuisine_query
+            or cuisine_query == restaurant["cuisine"].casefold()
+        )
     ]
 
 
@@ -31,6 +53,7 @@ def get_restaurant(restaurant_id: int):
     if restaurant is None:
         raise RestaurantNotFoundError("Restaurant not found")
     return restaurant
+
 
 def update_restaurant(
     restaurant_id: int,
