@@ -94,16 +94,16 @@ def test_empty_product_object_currently_reads_as_empty_menu(client, data_dir, co
     assert storage.read_text() == "{}"
 
 
-def test_menu_creation_does_not_validate_existing_products(client, data_dir, contract):
+def test_menu_creation_rejects_invalid_existing_products(data_dir, contract):
     storage = data_dir / "products.json"
     existing = {**json.loads(storage.read_text())[0], "price": "invalid"}
     storage.write_text(json.dumps([existing]))
+    before = storage.read_bytes()
     operation = contract["paths"]["/restaurants/{restaurant_id}/menu"]["post"]
-    response = client.post("/restaurants/1/menu", json=request_body(operation))
-    assert response.status_code == 201
-    expected = {**operation["responses"]["201"]["content"]["application/json"]["example"], "product_id": 2}
-    assert response.json() == expected
-    assert json.loads(storage.read_text()) == [existing, expected]
+    with TestClient(app, raise_server_exceptions=False) as http:
+        response = http.post("/restaurants/1/menu", json=request_body(operation))
+    assert response.status_code == 500
+    assert storage.read_bytes() == before
 
 
 @pytest.mark.parametrize("method,path,status", [entry for entry in OPERATIONS if "{" in entry[1]])

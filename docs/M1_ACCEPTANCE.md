@@ -83,10 +83,10 @@ No messages or review requests have been sent to teammates by this change.
 - Current implementation must pass its own remote CI, receive independent peer
   review and merge. Do not close #33 merely because local tests pass.
 - The JSON store supports one application worker on a local filesystem.
-  Menu service mutations currently read/modify before atomic file replacement;
-  simultaneous menu writes can lose updates. Do not use this as a multi-user
-  production ordering service. Concurrency redesign is outside these browsing
-  acceptance criteria and remains recorded here.
+  Menu creation uses the shared transaction (#46); updates and deletions still
+  read/modify before replacement and can lose concurrent writes. Do not use this
+  as a multi-user production ordering service. Concurrency redesign is outside
+  these browsing acceptance criteria and remains recorded here.
 - Menu image URLs are optional external resources. Failed or unsafe-protocol
   images are hidden; item text remains usable.
 - Existing menu contract ignores unknown fields/client-supplied IDs and permits

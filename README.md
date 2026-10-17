@@ -206,9 +206,10 @@ The restaurant request follows this path:
 
 Route → Service → Repository → JSON file
 
-Writes serialize the complete read/modify/write operation within one process.
-They sync a temporary file in the data directory before atomically replacing
-`restaurants.json`; failures before replacement preserve the original file.
+Restaurant writes and menu creation serialize the complete read/modify/write
+operation within one process. They sync a temporary file in the data directory
+before atomically replacing the target; failures before replacement preserve
+the original file and clean up temporary files.
 Run **one application worker** against a local data directory. Multiple
 processes or external writers sharing that directory are unsupported.
 Atomic replacement prevents partial JSON; power-loss durability of the
@@ -292,6 +293,24 @@ Existing restaurants with no items return `[]`. Unknown restaurants, unknown
 items and items belonging to another restaurant return HTTP 404; non-integer
 IDs return HTTP 422. See `/docs` for response fields.
 
+### Create a menu item (#46)
+
+```bash
+curl -X POST http://127.0.0.1:8000/restaurants/1/menu \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Soup","category":"Main","price":5.5}'
+```
+
+Use an existing restaurant ID. Success returns the complete item (201), with
+the next product ID across all restaurants. Concurrent creation requests in
+one process preserve all records and allocate unique IDs. Existing item fields
+and positive, unique integer product IDs are validated before writing; invalid
+storage returns 500 without replacement. Request fields retain the
+[API contract](docs/API_CONTRACT.md), including ignored client-supplied IDs.
+
+Run `python -m pytest tests/test_menu_creation.py -v` for isolated creation,
+concurrency, validation and write-failure checks.
+
 ## M1 browser acceptance (#29, #33, #41, #42)
 
 The home page loads actual restaurants and cuisine choices from the API. Search
@@ -346,5 +365,5 @@ python -m pytest tests/test_menu_update_persistence.py tests/test_api_contract.p
 The tests use temporary data, read back updates in a fresh Python process and
 inject temporary-file, serialization and replacement failures. They also check
 partial updates, no-ops, unchanged ownership and retry after a failed write.
-Menu writes currently require sequential requests: concurrent writes can lose
-updates. Shared transaction work remains in #48.
+Menu updates and deletions must remain sequential with all other menu writes
+to avoid lost updates. Shared update transaction work remains in #48.

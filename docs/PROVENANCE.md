@@ -1,5 +1,18 @@
 # AI Use and Provenance
 
+## Menu creation transaction (#46)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: menu route/service/repository, `tests/test_menu_creation.py`,
+  `tests/test_api_contract.py`, README, API contract, write decision and acceptance docs.
+- Purpose and influence: reuse the shared transaction for product ID allocation
+  and creation; validate stored products and add concurrency/failure regressions.
+- Validation: 369 Python, 30 Node and 11 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- References: [Pydantic validation](https://docs.pydantic.dev/latest/concepts/type_adapter/),
+  [Python file replacement](https://docs.python.org/3/library/os.html#os.replace).
+
 ## Menu update persistence acceptance (#49)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

@@ -57,7 +57,9 @@ def get_menu_item(restaurant_id: RestaurantId, product_id: ProductId):
     summary="Add a menu item",
     description="Create an item with a generated ID under an existing restaurant. "
                 "Name and category are nonempty; price must be positive and finite. "
-                "Unknown fields and supplied IDs are ignored. Storage failures return 500.",
+                "Unknown fields and supplied IDs are ignored. "
+                "ID allocation and append use one serialized storage transaction. "
+                "Invalid stored product fields or IDs and storage failures return 500.",
     responses={201: json_response(ITEM_READ, "Created item with generated ID and restaurant ownership."),
                404: resource_error(MenuError)},
     openapi_extra=validation_example(body=True),
