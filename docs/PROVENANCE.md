@@ -291,3 +291,14 @@
 - References: [FastAPI errors](https://fastapi.tiangolo.com/tutorial/handling-errors/),
   [path parameters](https://fastapi.tiangolo.com/tutorial/path-params/),
   [additional responses](https://fastapi.tiangolo.com/advanced/additional-responses/).
+
+## M1 planning meeting minutes (September 29, 2026)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifact: `scrum/2026-09-29-m1-planning.md`.
+- Source: meeting details supplied by the requesting team member.
+- Purpose and influence: translate and organize the supplied account of task
+  decomposition, self-selection of tasks, role requirements, and DFD discussion
+  into English minutes. No attendance or individual progress was supplied.
+- Validation: checked against the supplied meeting details and checked Markdown
+  whitespace; the course-specific meeting template has not been verified.
