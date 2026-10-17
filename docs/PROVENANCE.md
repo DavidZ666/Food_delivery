@@ -302,3 +302,15 @@
 - References: [FastAPI errors](https://fastapi.tiangolo.com/tutorial/handling-errors/),
   [path parameters](https://fastapi.tiangolo.com/tutorial/path-params/),
   [additional responses](https://fastapi.tiangolo.com/advanced/additional-responses/).
+
+## JSON write decision evidence (#28)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifact: `docs/decisions/json-writes.md`.
+- Purpose and influence: complete the existing receipt with implementation and
+  isolated test links, responsibility boundaries and deployment trade-offs.
+- Validation: 58 transaction/menu tests passed; documentation links and
+  `git diff --check` passed. Team explanation remains part of M1 review.
+- References: Python lock, temporary-file and replacement documentation linked
+  in the decision receipt.
