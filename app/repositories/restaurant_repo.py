@@ -1,14 +1,14 @@
 from app.core.config import get_data_dir
 from pydantic import TypeAdapter
 
-from app.repositories.json_store import read_json, update_json
+from app.repositories.json_store import read_json_array, update_json
 from app.schemas.restaurant import RestaurantRead
 from copy import deepcopy
 
 
 def list_all():
     file_path = get_data_dir() / "restaurants.json"
-    return read_json(file_path)
+    return read_json_array(file_path)
 
 
 def create(fields: dict) -> dict:

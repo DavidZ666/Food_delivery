@@ -1,5 +1,19 @@
 # AI Use and Provenance
 
+## Reject non-array read storage (#11)
+
+- Student: Yihang Zhao (GitHub `DavidZ666`).
+- Label: AI-GENERATED.
+- AI tool: OpenAI Codex.
+- Artifacts: repository read helper and callers, storage-shape API/browser
+  regressions, updated API contract and existing contract regression.
+- Purpose and influence: prevent non-array JSON from becoming a misleading
+  empty list or resource-not-found response. Preserve valid empty arrays.
+- Validation: 408 Python tests, 30 frontend tests and 13 real Chrome browser
+  tests passed with isolated data; representative data stayed unchanged.
+- Scope: top-level collection shape only, not complete per-record validation.
+
+
 ## Menu deletion transaction (#62)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
