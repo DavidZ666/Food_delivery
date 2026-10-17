@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create a restaurant · ByteBites</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/create-restaurant.js"></script>
+</head>
+<body>
+  <header>
+    <nav><a href="./">ByteBites</a></nav>
+  </header>
+  <main>
+    <h1>Create a restaurant</h1>
+    <p>Fields marked * are required.</p>
+
+    <form id="restaurant-form" novalidate>
+      <fieldset>
+        <legend>Restaurant</legend>
+        <div class="field">
+          <label for="field-name">Name <span aria-hidden="true">*</span></label>
+          <input id="field-name" name="name" type="text" required aria-describedby="error-name">
+          <p class="field-error" id="error-name" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-cuisine">Cuisine <span aria-hidden="true">*</span></label>
+          <input id="field-cuisine" name="cuisine" type="text" required aria-describedby="error-cuisine">
+          <p class="field-error" id="error-cuisine" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-description">Description</label>
+          <textarea id="field-description" name="description" rows="3" aria-describedby="error-description"></textarea>
+          <p class="field-error" id="error-description" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-logo_url">Logo URL</label>
+          <input id="field-logo_url" name="logo_url" type="url" aria-describedby="error-logo_url">
+          <p class="field-error" id="error-logo_url" aria-live="polite"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Location</legend>
+        <div class="field">
+          <label for="field-location-address">Address <span aria-hidden="true">*</span></label>
+          <input id="field-location-address" name="location.address" type="text" required aria-describedby="error-location.address">
+          <p class="field-error" id="error-location.address" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-location-city">City <span aria-hidden="true">*</span></label>
+          <input id="field-location-city" name="location.city" type="text" required aria-describedby="error-location.city">
+          <p class="field-error" id="error-location.city" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-location-province">Province <span aria-hidden="true">*</span></label>
+          <input id="field-location-province" name="location.province" type="text" required aria-describedby="error-location.province">
+          <p class="field-error" id="error-location.province" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-location-postal_code">Postal code <span aria-hidden="true">*</span></label>
+          <input id="field-location-postal_code" name="location.postal_code" type="text" required aria-describedby="error-location.postal_code">
+          <p class="field-error" id="error-location.postal_code" aria-live="polite"></p>
+        </div>
+      </fieldset>
+
+      <details>
+        <summary>Opening hours (optional)</summary>
+        <fieldset>
+          <legend>Hours, e.g. 09:00-21:00</legend>
+        <div class="field">
+          <label for="field-hours-monday">Monday</label>
+          <input id="field-hours-monday" name="hours.monday" type="text" aria-describedby="error-hours.monday">
+          <p class="field-error" id="error-hours.monday" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-hours-tuesday">Tuesday</label>
+          <input id="field-hours-tuesday" name="hours.tuesday" type="text" aria-describedby="error-hours.tuesday">
+          <p class="field-error" id="error-hours.tuesday" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-hours-wednesday">Wednesday</label>
+          <input id="field-hours-wednesday" name="hours.wednesday" type="text" aria-describedby="error-hours.wednesday">
+          <p class="field-error" id="error-hours.wednesday" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-hours-thursday">Thursday</label>
+          <input id="field-hours-thursday" name="hours.thursday" type="text" aria-describedby="error-hours.thursday">
+          <p class="field-error" id="error-hours.thursday" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-hours-friday">Friday</label>
+          <input id="field-hours-friday" name="hours.friday" type="text" aria-describedby="error-hours.friday">
+          <p class="field-error" id="error-hours.friday" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-hours-saturday">Saturday</label>
+          <input id="field-hours-saturday" name="hours.saturday" type="text" aria-describedby="error-hours.saturday">
+          <p class="field-error" id="error-hours.saturday" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-hours-sunday">Sunday</label>
+          <input id="field-hours-sunday" name="hours.sunday" type="text" aria-describedby="error-hours.sunday">
+          <p class="field-error" id="error-hours.sunday" aria-live="polite"></p>
+        </div>
+        </fieldset>
+      </details>
+
+      <button type="submit">Create restaurant</button>
+      <p id="form-status" role="status" aria-live="polite"></p>
+    </form>
+
+    <section id="created-restaurant" hidden>
+      <h2>Saved restaurant</h2>
+      <dl></dl>
+    </section>
+  </main>
+</body>
+</html>

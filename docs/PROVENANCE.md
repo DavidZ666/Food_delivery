@@ -1,8 +1,44 @@
 # AI Use and Provenance
 
+## Response body failure handling (#55)
+
+- Student(s): Zihan Tao GitHub `freesialuo`
+- Artifact: `frontend/js/api.js`; `tests/frontend/api.test.mjs`;
+  `docs/PROVENANCE.md`
+- Label: AI-GENERATED
+- AI tool: OpenAI Codex
+- Purpose and influence: Convert interrupted response-body reads into
+  `ApiError` so forms show failure feedback; add regression tests.
+- Validation: 201 pytest and 16 Node.js tests passed, including interrupted
+  bodies for HTTP 201, 422 and 500; `git diff --check` passed.
+- Reference: [Fetch response handling](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#handling_the_response).
+
+## Frontend skeleton and restaurant creation form (#50)
+
+- Student(s): Spencer Stephen (GitHub `SpencerS04`)
+- Artifact: `app/main.py`; `frontend/`; `tests/test_frontend.py`;
+  `tests/frontend/`; `.github/workflows/ci.yml`; `README.md`;
+  `docs/PROVENANCE.md`
+- Label: AI-GENERATED
+- AI tool: Claude Code (Claude Opus 5.5)
+- Purpose: Serve a basic frontend from FastAPI and build the restaurant
+  creation form for #50 (part of #32).
+- Influence: Generated the StaticFiles mount, the shared API request helper,
+  the form logic and page, Python and Node.js tests, the CI step and the
+  documentation. Serving the frontend from the API's origin was chosen to avoid
+  a separate server and CORS configuration.
+- Validation: 201 pytest tests and 13 Node.js tests passed locally (Python
+  3.14.2, Node.js 22.15). The form was checked in a browser against a temporary
+  data directory: a created restaurant was shown with its new ID and was read
+  back after a restart; blank required fields were flagged; simulated 422 and
+  network-failure responses showed field and request errors.
+- References: [FastAPI static files](https://fastapi.tiangolo.com/tutorial/static-files/),
+  [Node.js test runner](https://nodejs.org/api/test.html),
+  [MDN FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData).
+
 ## Restaurant creation and persistent writes (#24, #25)
 
-- Student(s): GitHub `freesialuo`
+- Student(s): Zihan Tao GitHub `freesialuo`
 - Artifact: `app/{routes,services,repositories,schemas}/`,
   `tests/test_restaurant_creation.py`, `tests/test_json_writes.py`, `README.md`,
   `docs/decisions/json-writes.md`, `docs/PROVENANCE.md`
@@ -23,7 +59,7 @@
 
 ## Restaurant name search
 
-- Student(s): GitHub `freesialuo`
+- Student(s): Zihan Tao GitHub `freesialuo`
 - Artifact: `app/routes/restaurants.py`; `app/services/restaurant_service.py`;
   `tests/test_restaurant_search.py`; `README.md`; `docs/PROVENANCE.md`
 - Label: AI-GENERATED
@@ -41,7 +77,7 @@
 
 ## Restaurant menu browsing
 
-- Student(s): GitHub `freesialuo`
+- Student(s): Zihan Tao GitHub `freesialuo`
 - Artifact: `app/main.py`; `app/routes/menu.py`; `app/services/menu_service.py`;
   `app/repositories/product_repo.py`; `app/schemas/menu.py`;
   `tests/test_menu.py`; `README.md`; `docs/PROVENANCE.md`
@@ -59,7 +95,7 @@
 
 ## CI test reports
 
-- Student(s): Zihan Tao
+- Student(s): Zihan Tao GitHub `freesialuo`
 - Artifact: `.github/workflows/ci.yml`; `docs/PROVENANCE.md`
 - Label: AI-GENERATED
 - AI tool: OpenAI Codex
@@ -72,7 +108,7 @@
 
 ## Test result summaries
 
-- Student(s): Zihan Tao
+- Student(s): Zihan Tao GitHub `freesialuo`
 - Artifact: `scripts/summarize_tests.py`; `tests/test_test_summary.py`;
   `.github/workflows/ci.yml`; `README.md`; `docs/PROVENANCE.md`
 - Label: AI-GENERATED
@@ -89,7 +125,7 @@
 
 ## Restaurant details
 
-- Student(s): GitHub `freesialuo`
+- Student(s): Zihan Tao GitHub `freesialuo`
 - Artifact: `app/routes/restaurants.py`; `app/services/restaurant_service.py`;
   `app/repositories/restaurant_repo.py`; `app/schemas/error.py`;
   `tests/test_restaurant_details.py`; `README.md`; `docs/PROVENANCE.md`
