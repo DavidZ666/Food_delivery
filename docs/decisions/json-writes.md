@@ -25,6 +25,18 @@ allow reuse.
 Isolated tests cover restart persistence, concurrent creation, malformed
 storage, invalid IDs, and failures during serialization, sync and replacement.
 
+Implementation: [shared transaction](../../app/repositories/json_store.py),
+[restaurant writes](../../app/repositories/restaurant_repo.py) and
+[menu writes](../../app/repositories/product_repo.py). Services check the selected
+restaurant; repositories enforce product IDs, ownership and persisted field rules.
+
+Evidence: [transaction failures and concurrency](../../tests/test_json_writes.py),
+[menu creation](../../tests/test_menu_creation.py),
+[mixed partial updates](../../tests/test_menu_update_transaction.py),
+[mixed deletion](../../tests/test_menu_delete_transaction.py) and
+[restart persistence](../../tests/test_m1_acceptance.py). These tests use temporary
+data.
+
 Sources: [Python temporary files](https://docs.python.org/3/library/tempfile.html),
 [os.replace and fsync](https://docs.python.org/3/library/os.html#os.replace),
 [thread locks](https://docs.python.org/3/library/threading.html#lock-objects).
