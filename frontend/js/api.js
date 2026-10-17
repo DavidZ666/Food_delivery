@@ -26,7 +26,14 @@ export async function apiRequest(path, { method = "GET", body } = {}) {
     throw new ApiError("Could not reach the server. Check that it is running.");
   }
 
-  const data = await readJson(response);
+  let data;
+  try {
+    data = await readJson(response);
+  } catch {
+    throw new ApiError("Could not read the server response. The request may have completed.", {
+      status: response.status,
+    });
+  }
   if (!response.ok) {
     throw new ApiError(errorMessage(response.status, data), {
       status: response.status,

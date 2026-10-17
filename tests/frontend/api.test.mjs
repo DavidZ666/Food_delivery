@@ -79,3 +79,25 @@ test("network failure rejects without a status", async () => {
     message: "Could not reach the server. Check that it is running.",
   });
 });
+
+for (const status of [201, 422, 500]) {
+  test(`interrupted response body rejects with ApiError and HTTP ${status}`, async () => {
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"detail":'));
+      },
+      pull(controller) {
+        controller.error(new TypeError("Connection terminated"));
+      },
+    });
+    globalThis.fetch = async () => new Response(body, { status });
+
+    await assert.rejects(apiRequest("/restaurants", { method: "POST", body: {} }), (error) => {
+      assert.ok(error instanceof ApiError);
+      assert.equal(error.status, status);
+      assert.equal(error.detail, null);
+      assert.equal(error.message, "Could not read the server response. The request may have completed.");
+      return true;
+    });
+  });
+}
