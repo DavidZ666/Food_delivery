@@ -51,6 +51,17 @@
 - References: [Pydantic validation](https://docs.pydantic.dev/latest/concepts/type_adapter/),
   [Python file replacement](https://docs.python.org/3/library/os.html#os.replace).
 
+## Menu creation persistence acceptance (#47)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `tests/test_menu_creation_persistence.py`, README and API documentation.
+- Purpose and influence: verify unmodified new items, defaults, ownership,
+  metadata and subsequent ID allocation across a fresh Python process.
+- Validation: 412 Python, 30 Node and 13 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [Python subprocess](https://docs.python.org/3/library/subprocess.html#subprocess.run).
+
 ## Menu update persistence acceptance (#49)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
@@ -116,7 +127,7 @@
 - Purpose: connect the actual API to restaurant discovery, details and menu-item
   views; verify management, error cases and restart persistence using isolated data.
 - Existing restaurant create/edit forms are reused from PRs #55/#57.
-- Validation and limitations: see `docs/M1_ACCEPTANCE.md`; independent review
+- Validation and limitations: isolated API/browser acceptance tests; independent review
   and merge evidence must not be inferred from AI-generated checks.
 
 

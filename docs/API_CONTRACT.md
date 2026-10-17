@@ -173,7 +173,7 @@ updates through the same lock. Atomic replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
-## Verification and agreement
+## Verification
 
 Run `python -m pytest tests/test_api_contract.py -v`, then the full pytest suite.
 The contract tests call every documented success example, compare real 404/422/500
@@ -181,7 +181,3 @@ responses with the published examples, verify bodyless 204, null-clearing, item
 ownership, no-op updates, ID reuse and health behavior with missing storage.
 Existing restaurant/menu tests cover the remaining search and write edge cases.
 All writes target temporary files; representative `data/` files stay unchanged.
-
-The team should review these existing semantics in the #27 PR. A code/test pass
-does not stand in for team agreement. Any later change to the merged behavior
-must update the models, documentation and isolated tests together.

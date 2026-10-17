@@ -310,6 +310,8 @@ storage returns 500 without replacement. Request fields retain the
 
 Run `python -m pytest tests/test_menu_creation.py -v` for isolated creation,
 concurrency, validation and write-failure checks.
+Run `python -m pytest tests/test_menu_creation_persistence.py -v` to verify new
+items, ownership, defaults and subsequent ID allocation in a fresh process (#47).
 
 ## M1 browser acceptance (#29, #33, #41, #42)
 
@@ -332,9 +334,6 @@ The browser runner starts its own server using `.venv/bin/python`; set
 `FOOD_DELIVERY_PYTHON` to another interpreter if needed. Each test uses temporary
 data copies and checks the representative files remain unchanged. It also tests
 creation/editing and persistence across an actual server restart.
-
-See [M1 acceptance evidence](docs/M1_ACCEPTANCE.md) for the requirement mapping,
-reproduction steps, PR review/CI audit and outstanding closure conditions.
 
 Menu updates omit fields to preserve them. Explicit nulls and nonfinite prices
 are rejected with 422 before writing, as these values cannot be represented by
