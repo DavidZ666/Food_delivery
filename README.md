@@ -206,7 +206,7 @@ The restaurant request follows this path:
 
 Route → Service → Repository → JSON file
 
-Restaurant writes and menu creation serialize the complete read/modify/write
+Restaurant and menu writes serialize the complete read/modify/write
 operation within one process. They sync a temporary file in the data directory
 before atomically replacing the target; failures before replacement preserve
 the original file and clean up temporary files.
@@ -365,5 +365,5 @@ python -m pytest tests/test_menu_update_persistence.py tests/test_api_contract.p
 The tests use temporary data, read back updates in a fresh Python process and
 inject temporary-file, serialization and replacement failures. They also check
 partial updates, no-ops, unchanged ownership and retry after a failed write.
-Menu updates and deletions must remain sequential with all other menu writes
-to avoid lost updates. Shared update transaction work remains in #48.
+All menu writes share the same transaction, preserving omitted fields and
+concurrent changes within one process. Deletion preserves every other record.

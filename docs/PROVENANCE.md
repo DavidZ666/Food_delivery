@@ -1,5 +1,29 @@
 # AI Use and Provenance
 
+## Menu deletion transaction (#62)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: Issue #62, menu deletion layers, `json_store.py`, deletion transaction
+  tests, README and storage/API/acceptance documentation.
+- Purpose and influence: identify the deletion race, reuse the shared transaction
+  and remove the obsolete write path; test mixed writes and failure cleanup/retry.
+- Validation: 379 Python, 30 Node and 11 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [Python atomic file replacement](https://docs.python.org/3/library/os.html#os.replace).
+
+## Menu update transaction (#48)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: menu repository/service/route, update transaction/persistence tests,
+  README, API contract, write decision and acceptance docs.
+- Purpose and influence: serialize menu updates with creation, share stored
+  product validation and test concurrent partial updates and failed-write cleanup.
+- Validation: 374 Python, 30 Node and 11 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [Python locks and context managers](https://docs.python.org/3/library/threading.html#using-locks-conditions-and-semaphores-in-the-with-statement).
+
 ## Menu creation transaction (#46)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

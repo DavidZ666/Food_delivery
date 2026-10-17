@@ -80,7 +80,8 @@ def create_menu_item(restaurant_id: RestaurantId, body: Annotated[MenuItemCreate
     description="Update supplied fields of an item belonging to this restaurant. "
                 "Omitted fields are preserved; explicit nulls are rejected. "
                 "Empty or unknown-only objects are no-ops; IDs cannot be changed. "
-                "Price must be positive and finite. Storage failures return 500.",
+                "Price must be positive and finite. Updates use the shared storage "
+                "transaction. Invalid stored products and storage failures return 500.",
     responses={200: json_response({**ITEM_READ, **ITEM_PATCH}), 404: resource_error(MenuError, item=True)},
     openapi_extra=validation_example(),
 )
@@ -102,7 +103,8 @@ def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: A
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remove a menu item",
     description="Remove an item owned by this restaurant. Return 204 with no body; "
-                "unknown resources return 404 and storage failures return 500.",
+                "unknown resources return 404. Deletion uses the shared storage "
+                "transaction; invalid stored products and storage failures return 500.",
     responses={204: {"description": "Removed successfully. Empty response body."},
                404: resource_error(MenuError, item=True)},
     openapi_extra=validation_example(),
