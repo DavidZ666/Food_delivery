@@ -1,0 +1,180 @@
+[
+  {
+    "name": "change name and city only",
+    "original": {
+      "id": 101,
+      "name": "Testaurant",
+      "cuisine": "Mexican",
+      "location": {
+        "address": "1 Test St",
+        "city": "Kelowna",
+        "province": "BC",
+        "postal_code": "V1V 1V1"
+      },
+      "description": "Test description",
+      "logo_url": "https://example.com/logo.png",
+      "hours": {
+        "monday": "09:00-21:00",
+        "tuesday": "09:00-21:00",
+        "wednesday": null,
+        "thursday": null,
+        "friday": "09:00-22:00",
+        "saturday": null,
+        "sunday": null
+      }
+    },
+    "values": {
+      "name": " Testaurant Two ",
+      "cuisine": "Mexican",
+      "description": "Test description",
+      "logo_url": "https://example.com/logo.png",
+      "location.address": "1 Test St",
+      "location.city": "Vernon",
+      "location.province": "BC",
+      "location.postal_code": "V1V 1V1",
+      "hours.monday": "09:00-21:00",
+      "hours.tuesday": "09:00-21:00",
+      "hours.wednesday": "",
+      "hours.thursday": "",
+      "hours.friday": "09:00-22:00",
+      "hours.saturday": "",
+      "hours.sunday": ""
+    },
+    "payload": {
+      "name": "Testaurant Two",
+      "location": {
+        "city": "Vernon"
+      }
+    }
+  },
+  {
+    "name": "clear optional fields and one day",
+    "original": {
+      "id": 101,
+      "name": "Testaurant",
+      "cuisine": "Mexican",
+      "location": {
+        "address": "1 Test St",
+        "city": "Kelowna",
+        "province": "BC",
+        "postal_code": "V1V 1V1"
+      },
+      "description": "Test description",
+      "logo_url": "https://example.com/logo.png",
+      "hours": {
+        "monday": "09:00-21:00",
+        "tuesday": "09:00-21:00",
+        "wednesday": null,
+        "thursday": null,
+        "friday": "09:00-22:00",
+        "saturday": null,
+        "sunday": null
+      }
+    },
+    "values": {
+      "name": "Testaurant",
+      "cuisine": "Mexican",
+      "description": "",
+      "logo_url": " ",
+      "location.address": "1 Test St",
+      "location.city": "Kelowna",
+      "location.province": "BC",
+      "location.postal_code": "V1V 1V1",
+      "hours.monday": "",
+      "hours.tuesday": "09:00-21:00",
+      "hours.wednesday": "",
+      "hours.thursday": "",
+      "hours.friday": "09:00-22:00",
+      "hours.saturday": "",
+      "hours.sunday": ""
+    },
+    "payload": {
+      "description": null,
+      "logo_url": null,
+      "hours": {
+        "monday": null
+      }
+    }
+  },
+  {
+    "name": "add details to a restaurant without optional fields",
+    "original": {
+      "id": 102,
+      "name": "McTest",
+      "cuisine": "Fast Food",
+      "location": {
+        "address": "2 Test St",
+        "city": "Kelowna",
+        "province": "BC",
+        "postal_code": "V1V 1V2"
+      }
+    },
+    "values": {
+      "name": "McTest",
+      "cuisine": "Burgers",
+      "description": "Now with burgers",
+      "logo_url": "",
+      "location.address": "2 Test St",
+      "location.city": "Kelowna",
+      "location.province": "BC",
+      "location.postal_code": "V1V 1V2",
+      "hours.monday": "",
+      "hours.tuesday": "",
+      "hours.wednesday": "",
+      "hours.thursday": "",
+      "hours.friday": "",
+      "hours.saturday": "11:00-23:00",
+      "hours.sunday": ""
+    },
+    "payload": {
+      "cuisine": "Burgers",
+      "description": "Now with burgers",
+      "hours": {
+        "saturday": "11:00-23:00"
+      }
+    }
+  },
+  {
+    "name": "whitespace-only differences are not changes",
+    "original": {
+      "id": 101,
+      "name": "Testaurant",
+      "cuisine": "Mexican",
+      "location": {
+        "address": "1 Test St",
+        "city": "Kelowna",
+        "province": "BC",
+        "postal_code": "V1V 1V1"
+      },
+      "description": "Test description",
+      "logo_url": "https://example.com/logo.png",
+      "hours": {
+        "monday": "09:00-21:00",
+        "tuesday": "09:00-21:00",
+        "wednesday": null,
+        "thursday": null,
+        "friday": "09:00-22:00",
+        "saturday": null,
+        "sunday": null
+      }
+    },
+    "values": {
+      "name": "Testaurant ",
+      "cuisine": " Mexican",
+      "description": "Test description",
+      "logo_url": "https://example.com/logo.png ",
+      "location.address": "1 Test St",
+      "location.city": "Kelowna",
+      "location.province": "BC",
+      "location.postal_code": "V1V 1V1",
+      "hours.monday": "09:00-21:00",
+      "hours.tuesday": "09:00-21:00",
+      "hours.wednesday": "",
+      "hours.thursday": "",
+      "hours.friday": "09:00-22:00",
+      "hours.saturday": "",
+      "hours.sunday": ""
+    },
+    "payload": {}
+  }
+]

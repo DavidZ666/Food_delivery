@@ -1,6 +1,5 @@
-// Restaurant form logic with no DOM access, so it can be unit tested with
-// `node --test`. Form values are keyed by input name, and nested API fields
-// use dotted names such as "location.city" or "hours.monday".
+// form logic for the restaurant forms. no DOM stuff in here so we can test it with node
+// values use the input names, e.g. "location.city" or "hours.monday"
 
 export const WEEKDAYS = [
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
@@ -17,7 +16,7 @@ export const REQUIRED_FIELDS = [
 
 const OPTIONAL_TEXT_FIELDS = ["description", "logo_url"];
 
-// Mirrors the API rule: required text is trimmed and must be nonblank.
+// same rule as the API, required text can't be blank
 export function validateRestaurantForm(values) {
   const errors = {};
   for (const field of REQUIRED_FIELDS) {
@@ -26,7 +25,7 @@ export function validateRestaurantForm(values) {
   return errors;
 }
 
-// Builds a RestaurantCreate request body. Blank optional fields are omitted.
+// body for POST /restaurants, leaves out empty optional fields
 export function toCreatePayload(values) {
   const payload = {
     name: text(values, "name"),
@@ -49,8 +48,51 @@ export function toCreatePayload(values) {
   return payload;
 }
 
-// Converts a FastAPI 422 detail list into {"location.city": "message"}.
-// Errors about the whole body (no field path) use the "" key.
+const LOCATION_FIELDS = ["address", "city", "province", "postal_code"];
+
+// turns a restaurant from the API into form values
+export function restaurantToValues(restaurant) {
+  const values = {
+    name: restaurant.name ?? "",
+    cuisine: restaurant.cuisine ?? "",
+  };
+  for (const field of OPTIONAL_TEXT_FIELDS) values[field] = restaurant[field] ?? "";
+  for (const field of LOCATION_FIELDS) {
+    values[`location.${field}`] = restaurant.location?.[field] ?? "";
+  }
+  for (const day of WEEKDAYS) values[`hours.${day}`] = restaurant.hours?.[day] ?? "";
+  return values;
+}
+
+// body for PATCH, only includes what changed
+// clearing an optional field sends null so the API removes it
+// returns {} if nothing changed
+export function toUpdatePayload(original, values) {
+  const before = restaurantToValues(original);
+  const changed = (field) => text(values, field) !== text(before, field);
+  const payload = {};
+
+  for (const field of ["name", "cuisine"]) {
+    if (changed(field)) payload[field] = text(values, field);
+  }
+  for (const field of OPTIONAL_TEXT_FIELDS) {
+    if (changed(field)) payload[field] = text(values, field) || null;
+  }
+  const location = {};
+  for (const field of LOCATION_FIELDS) {
+    if (changed(`location.${field}`)) location[field] = text(values, `location.${field}`);
+  }
+  if (Object.keys(location).length > 0) payload.location = location;
+  const hours = {};
+  for (const day of WEEKDAYS) {
+    if (changed(`hours.${day}`)) hours[day] = text(values, `hours.${day}`) || null;
+  }
+  if (Object.keys(hours).length > 0) payload.hours = hours;
+  return payload;
+}
+
+// turns FastAPI 422 errors into {"location.city": "message"}
+// errors that aren't for a specific field go under ""
 export function fieldErrorsFromDetail(detail) {
   const errors = {};
   if (!Array.isArray(detail)) return errors;

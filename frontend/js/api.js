@@ -1,13 +1,13 @@
-// Shared helper for calling the REST API. Pages are served from the same
-// origin as the API, so paths are relative (e.g. "/restaurants").
+// helper for calling our API. pages are served by the same server so we can
+// just use paths like "/restaurants"
 
 export class ApiError extends Error {
   constructor(message, { status = null, detail = null } = {}) {
     super(message);
     this.name = "ApiError";
-    // null when the request never reached the server.
+    // null if we never got a response
     this.status = status;
-    // The "detail" field of a FastAPI error body, when there is one.
+    // "detail" from FastAPI's error response (if there is one)
     this.detail = detail;
   }
 }
@@ -49,7 +49,7 @@ async function readJson(response) {
   try {
     return JSON.parse(text);
   } catch {
-    // e.g. the plain-text "Internal Server Error" body of an HTTP 500.
+    // 500s come back as plain text "Internal Server Error"
     return null;
   }
 }

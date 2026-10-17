@@ -1,5 +1,6 @@
-// Wires the restaurant creation form (#50) to POST /restaurants.
+// create restaurant form (#50)
 import { ApiError, apiRequest } from "./api.js";
+import { createFormUi } from "./form-ui.js";
 import {
   WEEKDAYS,
   fieldErrorsFromDetail,
@@ -9,19 +10,19 @@ import {
 
 const form = document.querySelector("#restaurant-form");
 const submitButton = form.querySelector("button[type=submit]");
-const statusMessage = document.querySelector("#form-status");
 const created = document.querySelector("#created-restaurant");
+const ui = createFormUi(form, document.querySelector("#form-status"));
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  clearErrors();
+  ui.clearErrors();
   created.hidden = true;
 
   const values = Object.fromEntries(new FormData(form));
   const errors = validateRestaurantForm(values);
   if (Object.keys(errors).length > 0) {
-    showFieldErrors(errors);
-    showStatus("Please fix the highlighted fields.", "error");
+    ui.showFieldErrors(errors);
+    ui.showStatus("Please fix the highlighted fields.", "error");
     return;
   }
 
@@ -33,11 +34,11 @@ form.addEventListener("submit", async (event) => {
     });
     showCreated(restaurant);
     form.reset();
-    showStatus(`Created "${restaurant.name}" with ID ${restaurant.id}.`, "success");
+    ui.showStatus(`Created "${restaurant.name}" with ID ${restaurant.id}.`, "success");
   } catch (error) {
     if (!(error instanceof ApiError)) throw error;
-    const unplaced = showFieldErrors(fieldErrorsFromDetail(error.detail));
-    showStatus([error.message, ...unplaced].join(" "), "error");
+    const unplaced = ui.showFieldErrors(fieldErrorsFromDetail(error.detail));
+    ui.showStatus([error.message, ...unplaced].join(" "), "error");
   } finally {
     setPending(false);
   }
@@ -46,40 +47,10 @@ form.addEventListener("submit", async (event) => {
 function setPending(pending) {
   submitButton.disabled = pending;
   submitButton.textContent = pending ? "Saving…" : "Create restaurant";
-  if (pending) showStatus("Saving restaurant…", "pending");
+  if (pending) ui.showStatus("Saving restaurant…", "pending");
 }
 
-function showStatus(message, kind) {
-  statusMessage.textContent = message;
-  statusMessage.dataset.kind = kind;
-}
-
-// Shows each error next to its input. Returns messages with no matching input.
-function showFieldErrors(errors) {
-  const unplaced = [];
-  for (const [field, message] of Object.entries(errors)) {
-    const input = field ? form.elements.namedItem(field) : null;
-    const errorElement = document.getElementById(`error-${field}`);
-    if (input && errorElement) {
-      input.setAttribute("aria-invalid", "true");
-      errorElement.textContent = message;
-    } else {
-      unplaced.push(field ? `${field}: ${message}` : message);
-    }
-  }
-  return unplaced;
-}
-
-function clearErrors() {
-  for (const input of form.querySelectorAll("[aria-invalid]")) {
-    input.removeAttribute("aria-invalid");
-  }
-  for (const element of form.querySelectorAll(".field-error")) {
-    element.textContent = "";
-  }
-}
-
-// Renders the restaurant returned by the API, not the submitted form values.
+// show what the API actually saved
 function showCreated(restaurant) {
   const location = restaurant.location;
   const rows = [
@@ -103,6 +74,7 @@ function showCreated(restaurant) {
     description.textContent = String(value);
     list.append(term, description);
   }
+  created.querySelector("#edit-created").href = `edit-restaurant.html?id=${restaurant.id}`;
   created.hidden = false;
 }
 
