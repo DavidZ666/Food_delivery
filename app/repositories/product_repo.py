@@ -1,7 +1,7 @@
 from pydantic import TypeAdapter
 
 from app.core.config import get_data_dir
-from app.repositories.json_store import read_json, update_json
+from app.repositories.json_store import read_json_array, update_json
 from app.schemas.menu import MenuItemCreate, MenuItemRead, MenuItemUpdate
 
 
@@ -21,7 +21,7 @@ def _validate_records(records):
 
 
 def list_all():
-    return read_json(get_data_dir() / "products.json")
+    return read_json_array(get_data_dir() / "products.json")
 
 
 def create(restaurant_id: int, fields: dict) -> dict:

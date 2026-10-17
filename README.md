@@ -335,9 +335,6 @@ The browser runner starts its own server using `.venv/bin/python`; set
 data copies and checks the representative files remain unchanged. It also tests
 creation/editing and persistence across an actual server restart.
 
-See [M1 acceptance evidence](docs/M1_ACCEPTANCE.md) for the requirement mapping,
-reproduction steps, PR review/CI audit and outstanding closure conditions.
-
 Menu updates omit fields to preserve them. Explicit nulls and nonfinite prices
 are rejected with 422 before writing, as these values cannot be represented by
 the menu response schema. Empty updates remain no-ops; supplied IDs and unknown

@@ -1,15 +1,18 @@
 # AI Use and Provenance
 
-## Menu creation persistence acceptance (#47)
+## Reject non-array read storage (#11)
 
-- Student: Zihan Tao (GitHub `freesialuo`).
-- Label: AI-GENERATED; AI tool: OpenAI Codex.
-- Artifacts: `tests/test_menu_creation_persistence.py`, README.
-- Purpose and influence: verify unmodified new items, defaults, ownership,
-  metadata and subsequent ID allocation across a fresh Python process.
-- Validation: 383 Python, 30 Node and 11 browser tests passed; representative
-  data unchanged; `git diff --check` passed.
-- Reference: [Python subprocess](https://docs.python.org/3/library/subprocess.html#subprocess.run).
+- Student: Yihang Zhao (GitHub `DavidZ666`).
+- Label: AI-GENERATED.
+- AI tool: OpenAI Codex.
+- Artifacts: repository read helper and callers, storage-shape API/browser
+  regressions, updated API contract and existing contract regression.
+- Purpose and influence: prevent non-array JSON from becoming a misleading
+  empty list or resource-not-found response. Preserve valid empty arrays.
+- Validation: 408 Python tests, 30 frontend tests and 13 real Chrome browser
+  tests passed with isolated data; representative data stayed unchanged.
+- Scope: top-level collection shape only, not complete per-record validation.
+
 
 ## Menu deletion transaction (#62)
 
@@ -47,6 +50,17 @@
   data unchanged; `git diff --check` passed.
 - References: [Pydantic validation](https://docs.pydantic.dev/latest/concepts/type_adapter/),
   [Python file replacement](https://docs.python.org/3/library/os.html#os.replace).
+
+## Menu creation persistence acceptance (#47)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `tests/test_menu_creation_persistence.py`, README and API documentation.
+- Purpose and influence: verify unmodified new items, defaults, ownership,
+  metadata and subsequent ID allocation across a fresh Python process.
+- Validation: 412 Python, 30 Node and 13 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [Python subprocess](https://docs.python.org/3/library/subprocess.html#subprocess.run).
 
 ## Menu update persistence acceptance (#49)
 
@@ -113,7 +127,7 @@
 - Purpose: connect the actual API to restaurant discovery, details and menu-item
   views; verify management, error cases and restart persistence using isolated data.
 - Existing restaurant create/edit forms are reused from PRs #55/#57.
-- Validation and limitations: see `docs/M1_ACCEPTANCE.md`; independent review
+- Validation and limitations: isolated API/browser acceptance tests; independent review
   and merge evidence must not be inferred from AI-generated checks.
 
 

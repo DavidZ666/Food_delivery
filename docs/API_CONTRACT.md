@@ -149,15 +149,18 @@ restaurant path ID has location `["path","restaurant_id"]`; a bad price has
 Request validation runs before resource lookup, so an invalid body can produce
 422 even when its restaurant ID does not exist. For valid menu requests the
 restaurant is checked before item lookup. File access and JSON parsing errors are
-not converted to empty lists. Rejected validation/ownership requests must not
+not converted to empty lists. Restaurant and product collection reads require a
+top-level JSON array: objects (including `{}`), strings, numbers, booleans and
+null return 500 before filtering or lookup. A valid empty array `[]` retains
+normal empty-list/404 behavior. Rejected validation/ownership requests must not
 alter stored records.
 
 Menu writes validate the stored product collection, response fields and
 creation field rules without coercing persisted types. Nonpositive, non-integer
 or duplicate product IDs are rejected with 500 before writing. Existing records,
-including extra metadata, are preserved. Reads do not uniformly validate stored
-products: for example, `products.json` containing `{}`
-still reads as an empty menu. These checks do not establish integrity of every
+including extra metadata, are preserved. The top-level array check on reads is
+not full per-record validation: records excluded by a filter may not be validated
+by the response model. These checks do not establish integrity of every
 stored relationship.
 
 Writes retain Route → Service → Repository → JSON. `FOOD_DELIVERY_DATA_DIR` chooses
@@ -170,7 +173,7 @@ updates through the same lock. Atomic replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
-## Verification and agreement
+## Verification
 
 Run `python -m pytest tests/test_api_contract.py -v`, then the full pytest suite.
 The contract tests call every documented success example, compare real 404/422/500
@@ -178,7 +181,3 @@ responses with the published examples, verify bodyless 204, null-clearing, item
 ownership, no-op updates, ID reuse and health behavior with missing storage.
 Existing restaurant/menu tests cover the remaining search and write edge cases.
 All writes target temporary files; representative `data/` files stay unchanged.
-
-The team should review these existing semantics in the #27 PR. A code/test pass
-does not stand in for team agreement. Any later change to the merged behavior
-must update the models, documentation and isolated tests together.
