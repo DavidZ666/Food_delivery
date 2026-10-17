@@ -111,6 +111,37 @@ curl http://127.0.0.1:8000/restaurants/1
 The endpoint returns the same fields as the restaurant list. Unknown IDs
 return HTTP 404; non-integer IDs return HTTP 422.
 
+### Filter restaurants by cuisine
+
+Use the optional `cuisine` query parameter to filter restaurants:
+
+```bash
+curl --get \
+  --data-urlencode "cuisine=Fast Food" \
+  http://127.0.0.1:8000/restaurants
+```
+
+Cuisine filtering uses a case-insensitive exact match. Surrounding
+query whitespace is ignored. An omitted or blank cuisine parameter
+does not restrict the results.
+
+Name search and cuisine filtering can be combined:
+
+```bash
+curl --get \
+  --data-urlencode "name=mc" \
+  --data-urlencode "cuisine=Fast Food" \
+  http://127.0.0.1:8000/restaurants
+```
+
+When both parameters are supplied, a restaurant must match both.
+Name search remains a case-insensitive literal substring match.
+Results retain storage order and the existing restaurant fields.
+
+No matches or an empty restaurant collection return HTTP 200 with `[]`.
+Reads do not modify stored data. Missing or malformed storage remains
+a server error rather than an empty search result.
+
 ## Data and Configuration
 
 The restaurant-list endpoint reads `data/restaurants.json`.
