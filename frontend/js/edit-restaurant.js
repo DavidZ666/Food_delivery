@@ -26,6 +26,7 @@ picker.addEventListener("change", () => {
   if (id) {
     loadRestaurant(id);
   } else {
+    latestLoad += 1;
     showPickerStatus("", "");
     hideForm();
   }
@@ -33,6 +34,7 @@ picker.addEventListener("change", () => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!original || submitButton.disabled) return;
   ui.clearErrors();
 
   const values = Object.fromEntries(new FormData(form));
@@ -148,6 +150,10 @@ function showPickerStatus(message, kind) {
 }
 
 function setPending(pending) {
+  picker.disabled = pending;
+  for (const input of form.querySelectorAll("input, textarea")) {
+    input.disabled = pending;
+  }
   submitButton.disabled = pending;
   submitButton.textContent = pending ? "Saving…" : "Save changes";
   if (pending) ui.showStatus("Saving changes…", "pending");

@@ -1,5 +1,18 @@
 # AI Use and Provenance
 
+## Restaurant edit request handling (#51, PR #57)
+
+- Student(s): Zihan Tao (GitHub `freesialuo`)
+- Artifact: `frontend/js/edit-restaurant.js`;
+  `tests/frontend/edit-restaurant.test.mjs`; `docs/PROVENANCE.md`
+- Label: AI-GENERATED
+- AI tool: OpenAI Codex
+- Purpose and influence: Lock selection and inputs during saves, ignore loads
+  after clearing the selection, and add page-level regression tests.
+- Validation: 232 pytest and 30 Node.js tests passed; regression tests cover
+  delayed loads, save locking, and rejected edits; `git diff --check` passed.
+- Reference: [Node.js test mocks](https://nodejs.org/docs/latest-v22.x/api/test.html#mocking).
+
 ## Restaurant update form (#51)
 
 - Student(s): Spencer Stephen (GitHub `SpencerS04`)
