@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Response, status
 
-from app.schemas.menu import MenuError, MenuItemRead
+from app.schemas.menu import MenuError, MenuItemRead, MenuItemCreate, MenuItemUpdate
 from app.services import menu_service
 
 router = APIRouter()
@@ -43,3 +43,48 @@ def get_menu_item(restaurant_id: RestaurantId, product_id: ProductId):
         raise HTTPException(status_code=404, detail="Restaurant not found") from None
     except menu_service.MenuItemNotFound:
         raise HTTPException(status_code=404, detail="Menu item not found") from None
+
+@router.post(
+    "/restaurants/{restaurant_id}/menu",
+    response_model=MenuItemRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a menu item",
+    responses={404: {"model": MenuError, "description": "Restaurant not found."}},
+)
+def create_menu_item(restaurant_id: RestaurantId, body: MenuItemCreate):
+    try:
+        return menu_service.create_menu_item(restaurant_id, body.model_dump())
+    except menu_service.RestaurantNotFound:
+        raise HTTPException(status_code=404, detail="Restaurant not found") from None
+
+
+@router.patch(
+    "/restaurants/{restaurant_id}/menu/{product_id}",
+    response_model=MenuItemRead,
+    summary="Update a menu item",
+    responses={404: {"model": MenuError, "description": "Restaurant or menu item not found."}},
+)
+def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: MenuItemUpdate):
+    changes = body.model_dump(exclude_unset=True)
+    try:
+        return menu_service.update_menu_item(restaurant_id, product_id, changes)
+    except menu_service.RestaurantNotFound:
+        raise HTTPException(status_code=404, detail="Restaurant not found") from None
+    except menu_service.MenuItemNotFound:
+        raise HTTPException(status_code=404, detail="Menu item not found") from None
+
+
+@router.delete(
+    "/restaurants/{restaurant_id}/menu/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a menu item",
+    responses={404: {"model": MenuError, "description": "Restaurant or menu item not found."}},
+)
+def delete_menu_item(restaurant_id: RestaurantId, product_id: ProductId):
+    try:
+        menu_service.delete_menu_item(restaurant_id, product_id)
+    except menu_service.RestaurantNotFound:
+        raise HTTPException(status_code=404, detail="Restaurant not found") from None
+    except menu_service.MenuItemNotFound:
+        raise HTTPException(status_code=404, detail="Menu item not found") from None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
