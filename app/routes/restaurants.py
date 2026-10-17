@@ -8,6 +8,10 @@ from fastapi import (
     Query,
 )
 
+from app.core.api_contract import (
+    RESTAURANT_CREATE, RESTAURANT_READ, RESTAURANT_UPDATED, STORAGE_FAILURE,
+    json_response, validation_example,
+)
 from app.schemas.error import ErrorResponse
 from app.schemas.restaurant import (
     RestaurantCreate,
@@ -16,7 +20,7 @@ from app.schemas.restaurant import (
 )
 from app.services import restaurant_service
 
-router = APIRouter(responses={500: {"description": "Stored data could not be read or written."}})
+router = APIRouter(responses={500: STORAGE_FAILURE})
 
 
 @router.get(
@@ -36,6 +40,7 @@ router = APIRouter(responses={500: {"description": "Stored data could not be rea
     ),
     response_description="The matching restaurants.",
     responses={
+        200: json_response([RESTAURANT_READ], "Stored-order results; [] when empty or unmatched."),
         500: {
             "description": "Stored data could not be read or processed.",
             "content": {
@@ -50,6 +55,7 @@ router = APIRouter(responses={500: {"description": "Stored data could not be rea
 def list_restaurants(
     name: str | None = Query(
         default=None,
+        examples=["café"],
         description=(
             "Case-insensitive literal name substring. "
             "Surrounding whitespace is ignored. "
@@ -58,6 +64,7 @@ def list_restaurants(
     ),
     cuisine: str | None = Query(
         default=None,
+        examples=["Fusion"],
         description=(
             "Case-insensitive exact cuisine match. "
             "Surrounding whitespace is ignored. "
@@ -82,9 +89,12 @@ def list_restaurants(
         "a supplied ID, are rejected with 422. Storage failures return 500."
     ),
     response_description="The persisted restaurant, including its generated ID.",
-    responses={500: {"description": "Invalid stored data or storage failure."}},
+    responses={201: json_response(RESTAURANT_READ, "Created restaurant with generated ID.")},
+    openapi_extra=validation_example(body=True, path=False),
 )
-def create_restaurant(restaurant: RestaurantCreate):
+def create_restaurant(restaurant: Annotated[RestaurantCreate, Body(
+    openapi_examples={"create": {"summary": "Create a restaurant", "value": RESTAURANT_CREATE}}
+)]):
     return restaurant_service.create_restaurant(restaurant)
 
 @router.get(
@@ -96,7 +106,7 @@ def create_restaurant(restaurant: RestaurantCreate):
         "Non-integer IDs return HTTP 422 validation errors."
     ),
     responses={
-        200: {"description": "The requested restaurant, including optional fields."},
+        200: json_response(RESTAURANT_READ, "The requested restaurant, including optional fields."),
         404: {
             "model": ErrorResponse,
             "description": "No restaurant has the requested ID.",
@@ -105,9 +115,10 @@ def create_restaurant(restaurant: RestaurantCreate):
             },
         },
     },
+    openapi_extra=validation_example(),
 )
 def get_restaurant(
-    restaurant_id: Annotated[int, Path(description="Stable ID of the restaurant")],
+    restaurant_id: Annotated[int, Path(description="Stored integer restaurant ID; an unknown integer returns 404.", examples=[1])],
 ):
     try:
         return restaurant_service.get_restaurant(restaurant_id)
@@ -132,6 +143,7 @@ def get_restaurant(
     ),
     response_description="The complete persisted restaurant.",
     responses={
+        200: json_response(RESTAURANT_UPDATED, "Complete restaurant after the partial-update example."),
         404: {
             "model": ErrorResponse,
             "description": (
@@ -157,11 +169,12 @@ def get_restaurant(
             },
         },
     },
+    openapi_extra=validation_example(),
 )
 def update_restaurant(
     restaurant_id: Annotated[
         int,
-        Path(description="Stable ID of the restaurant"),
+        Path(description="Stored integer restaurant ID; an unknown integer returns 404.", examples=[1]),
     ],
     restaurant: Annotated[
         RestaurantUpdate,
