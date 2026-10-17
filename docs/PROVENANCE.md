@@ -1,5 +1,16 @@
 # AI Use and Provenance
 
+## Menu creation persistence acceptance (#47)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `tests/test_menu_creation_persistence.py`, README.
+- Purpose and influence: verify unmodified new items, defaults, ownership,
+  metadata and subsequent ID allocation across a fresh Python process.
+- Validation: 383 Python, 30 Node and 11 browser tests passed; representative
+  data unchanged; `git diff --check` passed.
+- Reference: [Python subprocess](https://docs.python.org/3/library/subprocess.html#subprocess.run).
+
 ## Menu deletion transaction (#62)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

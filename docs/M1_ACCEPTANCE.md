@@ -1,7 +1,7 @@
 # M1 acceptance evidence (#29, #33, #41, #42)
 
-Snapshot date: 2026-10-17 (Asia/Shanghai). Base: `bec8603` (includes PR #57).
-This is local implementation evidence, not a declaration that all GitHub issues can close.
+Verified on 2026-10-16 (America/Vancouver). Code includes merged PRs #61/#63/#64
+and the #47 restart acceptance tests. Review and merge evidence appears below.
 
 ## Reproduce
 
@@ -30,12 +30,12 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/Ma
 
 ## Local results
 
-- Python 3.14: **253 passed**, including all existing M0 regressions.
+- Python 3.14: **383 passed**, including all existing M0 regressions.
 - Node frontend suite: **30 passed**.
-- Actual headless Chrome with FastAPI: **9 passed**.
+- Actual headless Chrome with FastAPI: **11 passed**.
 - Representative JSON file byte checks passed in every browser fixture.
-- These results are from the implementation prepared on 2026-10-17;
-  remote CI and independent review for the new changes remain pending.
+- These results include the complete menu transaction stack and #47;
+  remote CI and independent review for #47 remain pending.
 
 ## Acceptance mapping
 
@@ -46,7 +46,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/Ma
 | #42: selected restaurant → menu → selected item | Real API browsing test verifies URL IDs, names, prices, return links |
 | #42: empty menus, missing resources, ownership, request errors | Empty-menu, unknown/wrong-owner/invalid-ID, failure and retry browser tests |
 | #29: complete customer browser flow | All browser success paths use actual FastAPI endpoints and temporary JSON |
-| #33: API create/update and restart persistence | `test_management_api_and_readback_in_a_fresh_process`; browser item test kills/restarts Uvicorn |
+| #33/#47: API create/update and restart persistence | `test_management_api_and_readback_in_a_fresh_process`, `test_new_items_and_next_id_survive_restart`; browser item test kills/restarts Uvicorn |
 | #33: UI restaurant management and persistence | Browser creates restaurant, edits name/city, restarts server, reloads form and reads details |
 | #33: invalid input and storage failures | Existing regressions plus explicit-null update rejection and failed-write preservation tests |
 | #33: isolated tests and M0 regressions | Full pytest and Node suites; browser fixture checks representative-data bytes |

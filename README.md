@@ -310,6 +310,8 @@ storage returns 500 without replacement. Request fields retain the
 
 Run `python -m pytest tests/test_menu_creation.py -v` for isolated creation,
 concurrency, validation and write-failure checks.
+Run `python -m pytest tests/test_menu_creation_persistence.py -v` to verify new
+items, ownership, defaults and subsequent ID allocation in a fresh process (#47).
 
 ## M1 browser acceptance (#29, #33, #41, #42)
 
