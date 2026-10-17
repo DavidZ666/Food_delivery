@@ -85,12 +85,13 @@ def test_documented_storage_failures_match_actual_format(data_dir, contract, met
     assert response.text == media["example"]
 
 
-def test_empty_product_object_currently_reads_as_empty_menu(client, data_dir, contract):
+def test_empty_product_object_is_a_storage_error(data_dir, contract):
     storage = data_dir / "products.json"
     storage.write_text("{}")
-    response = client.get("/restaurants/1/menu")
-    assert response.status_code == 200
-    assert response.json() == []
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get("/restaurants/1/menu")
+    assert response.status_code == 500
+    assert response.text == "Internal Server Error"
     assert storage.read_text() == "{}"
 
 

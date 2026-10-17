@@ -16,6 +16,14 @@ def read_json(file_path: Path):
     with file_path.open("r", encoding="utf-8") as file:
         return json.load(file)
 
+
+def read_json_array(file_path: Path) -> list:
+    """Reject non-array storage before filtering can disguise it as no results."""
+    records = read_json(file_path)
+    if not isinstance(records, list):
+        raise ValueError(f"Expected a JSON array in {file_path.name}")
+    return records
+
 def update_json(file_path: Path, transform: Callable[[Any], tuple[Any, T]]) -> T:
     """Serialize a read/transform/replace transaction on a local filesystem.
 
