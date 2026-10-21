@@ -1,5 +1,20 @@
 # AI Use and Provenance
 
+## Customer/auth schemas and repository (#72)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tools: Claude Opus, OpenAI Codex.
+- Artifacts: customer/auth schemas, customer repository, `data/customers.json`,
+  `tests/test_customer_repo.py`, API contract and README.
+- Purpose and influence: define the M2 customer/auth contract and persistent
+  accounts with stable IDs, unique emails and malformed-storage rejection;
+  review fixes enforce stored-field validation and normalized updates.
+- Validation: 448 Python tests and 30 frontend tests passed, including review
+  regressions; representative data unchanged.
+- References: [Pydantic string constraints](https://docs.pydantic.dev/latest/api/types/#pydantic.types.StringConstraints),
+  [strict validation](https://docs.pydantic.dev/latest/concepts/strict_mode/),
+  [FastAPI OAuth2 token response](https://fastapi.tiangolo.com/tutorial/security/simple-oauth2/).
+
 ## Reject non-array read storage (#11)
 
 - Student: Yihang Zhao (GitHub `DavidZ666`).
