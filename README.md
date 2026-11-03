@@ -204,6 +204,14 @@ Menu requests also require `products.json` in the same directory.
 Customer accounts are stored in `customers.json` (initially `[]`).
 Carts are stored in `carts.json` (initially `[]`).
 
+Customer registration (`POST /customers`) and sign-in (`POST /auth/login`) are
+available. Registration stores a salted password hash and returns an active
+customer account; sign-in returns an opaque bearer token valid for one hour.
+Sessions are in memory and end on server restart; accounts persist and can sign
+in again. Profile routes and authorization guards are separate follow-up tasks.
+See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
+for request examples, error codes and the credential contract.
+
 The restaurant request follows this path:
 
 Route → Service → Repository → JSON file

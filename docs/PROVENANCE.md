@@ -342,3 +342,21 @@
   `git diff --check` passed. Team explanation remains part of M1 review.
 - References: Python lock, temporary-file and replacement documentation linked
   in the decision receipt.
+
+
+## Customer registration and sign-in (#73)
+
+- Contributor account: `DavidZ666` (issue assignee); implementation assisted by OpenAI Codex.
+- Label: AI-GENERATED.
+- Artifacts: `app/core/customer_auth.py`, `app/services/customer_service.py`,
+  `app/routes/customers.py`, `app/routes/auth.py`, `app/main.py`,
+  `tests/test_customer_auth.py`, `docs/API_CONTRACT.md`, `README.md`.
+- Purpose and influence: implement registration, salted password hashing,
+  credential verification, expiring opaque bearer sessions, route registration,
+  credential-error redaction, isolated tests and the downstream guard contract.
+- Validation: customer/auth and repository tests: 69 passed; full Python suite:
+  481 passed. Tests include fresh-process sign-in, failure-safe storage, role
+  injection rejection, invalid credentials, deactivation, token expiry,
+  prefix-deployment password redaction and OpenAPI. Representative data files
+  were unchanged.
+- PR: #104.
