@@ -181,3 +181,50 @@ responses with the published examples, verify bodyless 204, null-clearing, item
 ownership, no-op updates, ID reuse and health behavior with missing storage.
 Existing restaurant/menu tests cover the remaining search and write edge cases.
 All writes target temporary files; representative `data/` files stay unchanged.
+
+# M2 customer and auth contract (#72)
+
+Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
+(`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
+Endpoints are implemented by #73 (register, sign in), #75 (profile,
+deactivation) and #77 (bearer authentication and roles).
+
+| Method and path | Inputs | Success body | Status codes |
+|---|---|---|---|
+| POST `/customers` | `CustomerCreate` | `CustomerRead` | 201, 409, 422, 500 |
+| POST `/auth/login` | `LoginRequest` | `TokenResponse` | 200, 401, 403, 422, 500 |
+| GET `/customers/{customer_id}` | Bearer token | `CustomerRead` | 200, 401, 403, 404, 422, 500 |
+| PATCH `/customers/{customer_id}` | Bearer token, `CustomerUpdate` | `CustomerRead` | 200, 401, 403, 404, 422, 500 |
+| POST `/customers/{customer_id}/deactivate` | Bearer token | `CustomerRead` | 200, 401, 403, 404, 422, 500 |
+
+| Situation | Result |
+|---|---|
+| Email already registered (trimmed, case-insensitive) | 409 `{"detail":"Email is already registered"}` |
+| Wrong email or password; missing or invalid token | 401 `{"detail":"Invalid credentials"}` |
+| Deactivated account, or another customer's profile without `admin` role | 403 `{"detail":"Forbidden"}` |
+| Unknown customer ID | 404 `{"detail":"Customer not found"}` |
+
+## Models
+
+- `CustomerCreate`: `name`, `phone` (trimmed, nonblank), `email` (trimmed,
+  lowercased, `local@domain.tld`, at most 254 characters), `password` (8–128
+  characters) and `delivery_address` (`address`, `city`, `province`,
+  `postal_code`, trimmed and nonblank). Unknown fields, `id`, `role` and
+  `is_active` are rejected; the server assigns `role: "customer"` and
+  `is_active: true`.
+- `CustomerUpdate`: optional `name`, `phone`, `delivery_address`; the address
+  merges by subfield. Empty objects, nulls and other fields return 422.
+- `CustomerRead`: `id`, `name`, `email`, `phone`, `delivery_address`, `role`
+  (`customer`, `restaurant_owner` or `admin`), `is_active`. Never includes the password hash.
+- `LoginRequest`: `email`, `password`. `TokenResponse`: `access_token`,
+  `token_type: "bearer"`, `customer` (`CustomerRead`).
+
+## Storage
+
+Each stored record is a `CustomerRead` plus `password_hash`; plaintext
+passwords are never stored. IDs start at 1, then the maximum stored ID + 1;
+accounts are deactivated, not deleted, so IDs are not reused. Writes use the
+shared transaction and preserve other records and extra metadata. Malformed
+storage (invalid JSON, non-array, invalid records or roles, nonpositive or
+duplicate IDs, duplicate emails) is rejected with 500 without overwriting the
+file. Duplicate-email and unknown-ID writes leave the file unchanged.
