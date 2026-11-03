@@ -186,8 +186,10 @@ All writes target temporary files; representative `data/` files stay unchanged.
 
 Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
 (`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
-Endpoints are implemented by #73 (register, sign in), #75 (profile,
-deactivation) and #77 (bearer authentication and roles).
+Registration and sign-in endpoints are implemented by #73. Profile and
+deactivation endpoints remain planned for #75; bearer authentication guards and
+role enforcement remain planned for #77/#78. The table includes these planned
+operations; only POST `/customers` and POST `/auth/login` are implemented here.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
@@ -228,3 +230,54 @@ shared transaction and preserve other records and extra metadata. Malformed
 storage (invalid JSON, non-array, invalid records or roles, nonpositive or
 duplicate IDs, duplicate emails) is rejected with 500 without overwriting the
 file. Duplicate-email and unknown-ID writes leave the file unchanged.
+
+## Registration and sign-in (#73)
+
+POST `/customers` with this JSON body returns 201 and `CustomerRead`:
+
+```json
+{
+  "name": "Ada", "email": "ada@example.com", "password": "example-password",
+  "phone": "250-555-0100",
+  "delivery_address": {
+    "address": "1 Main St", "city": "Kelowna",
+    "province": "BC", "postal_code": "V1V 1V1"
+  }
+}
+```
+
+POST `/auth/login` with `{"email":"ada@example.com","password":"example-password"}`
+returns 200 with `{"access_token":"<opaque token>","token_type":"bearer","customer":{...}}`.
+Registration does not issue a token. Email matching ignores surrounding whitespace
+and case; passwords are exact, including whitespace and Unicode. Wrong passwords
+and unknown accounts return the same 401 error with `WWW-Authenticate: Bearer`.
+A correct password for a deactivated account returns 403. Login does not write
+customer storage. Credential request validation returns 422 without `input` or
+`ctx` fields, preventing passwords from being echoed in errors.
+
+Passwords use salted scrypt, stored as
+`scrypt$16384$8$1$<16-byte salt hex>$<64-byte digest hex>` (N=16384, r=8, p=1).
+Each registration generates a fresh salt. Verification uses constant-time digest
+comparison. Malformed or unsupported stored password hashes return 500.
+
+### Bearer credential contract for #77
+
+- Send `Authorization: Bearer <access_token>` to future protected operations.
+- Tokens are opaque, generated from 32 random bytes using URL-safe encoding.
+  They are not JWTs and contain no client-readable identity or role claims.
+- Sessions expire one hour after issuance, with no sliding renewal. Sign in
+  again to obtain a new token. Each login creates an independent session.
+- The single application process holds only SHA-256 token digests, customer IDs
+  and expiry times in memory. Restarting the server invalidates all tokens;
+  persisted accounts can still sign in after restart. Multiple workers are
+  unsupported, consistent with the JSON storage model.
+- `app.core.customer_auth.resolve_token(token)` returns the customer ID or
+  `None` for unknown/expired tokens. Downstream guards must re-read the customer
+  on every request and enforce active status, roles and ownership. Resolving a
+  token alone does not authorize access. This task does not protect existing
+  restaurant/menu endpoints or implement logout/refresh endpoints.
+
+Verification: `python -m pytest tests/test_customer_auth.py tests/test_customer_repo.py -q`.
+Tests use temporary storage and cover real-process restart/login, duplicate and
+invalid registration, inactive accounts, storage failures, token expiry and
+tampering, password secrecy, and generated OpenAPI request/response contracts.
