@@ -202,6 +202,7 @@ Set the `FOOD_DELIVERY_DATA_DIR` environment variable to use a
 different directory. That directory must contain `restaurants.json`.
 Menu requests also require `products.json` in the same directory.
 Customer accounts are stored in `customers.json` (initially `[]`).
+Carts are stored in `carts.json` (initially `[]`).
 
 The restaurant request follows this path:
 
