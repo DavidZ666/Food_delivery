@@ -17,7 +17,7 @@ app = FastAPI()
 async def validation_error_response(_request: Request, exc: RequestValidationError):
     # Invalid numeric input can itself be unrepresentable in a JSON error body.
     errors = exc.errors()
-    if _request.url.path in {"/customers", "/auth/login"}:
+    if getattr(_request.scope.get("route"), "path", None) in {"/customers", "/auth/login"}:
         # A model-level validation error can echo the entire credential body.
         errors = [{key: value for key, value in error.items() if key not in {"input", "ctx"}}
                   for error in errors]

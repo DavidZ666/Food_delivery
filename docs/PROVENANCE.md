@@ -341,8 +341,9 @@
 - Purpose and influence: implement registration, salted password hashing,
   credential verification, expiring opaque bearer sessions, route registration,
   credential-error redaction, isolated tests and the downstream guard contract.
-- Validation: customer/auth and repository tests: 68 passed; full Python suite:
-  480 passed. Tests include fresh-process sign-in, failure-safe storage, role
-  injection rejection, invalid credentials, deactivation, token expiry and
-  OpenAPI. Representative data files were unchanged.
-- Scope: local implementation; peer review, commit and PR are not yet recorded.
+- Validation: customer/auth and repository tests: 69 passed; full Python suite:
+  481 passed. Tests include fresh-process sign-in, failure-safe storage, role
+  injection rejection, invalid credentials, deactivation, token expiry,
+  prefix-deployment password redaction and OpenAPI. Representative data files
+  were unchanged.
+- PR: #104.

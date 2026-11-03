@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core import customer_auth
@@ -90,22 +91,41 @@ def test_api_registration_duplicate_and_login(storage, client):
 
 
 @pytest.mark.parametrize("change", [
-    {"name": ""}, {"password": "short"}, {"password": "a" * 129},
+    {"name": ""}, {"password": "tiny-pw"}, {"password": "a" * 129},
     {"email": "invalid"}, {"role": "admin"}, {"id": 100}, {"is_active": False},
     {"delivery_address": {}},
 ])
 def test_registration_validation(storage, client, change):
-    response = client.post("/customers", json={**REGISTRATION, **change})
+    body = {**REGISTRATION, **change}
+    response = client.post("/customers", json=body)
     assert response.status_code == 422
     assert storage.read_text() == "[]"
-    assert REGISTRATION["password"] not in response.text
+    assert body["password"] not in response.text
     assert all("input" not in error for error in response.json()["detail"])
 
 
 @pytest.mark.parametrize("body", [{}, {"email": "invalid", "password": "secret"}, {**LOGIN, "role": "admin"}])
 def test_login_validation(storage, client, body):
-    assert client.post("/auth/login", json=body).status_code == 422
+    response = client.post("/auth/login", json=body)
+    assert response.status_code == 422
+    assert body.get("password", REGISTRATION["password"]) not in response.text
+    assert all("input" not in error for error in response.json()["detail"])
     assert not customer_auth._sessions
+
+
+def test_prefixed_validation_redacts_passwords(storage):
+    mounted = FastAPI()
+    mounted.mount("/api", app)
+    for target in (TestClient(app, root_path="/api"), TestClient(mounted)):
+        with target as prefixed_client:
+            for path, body in (
+                ("/api/customers", {**REGISTRATION, "password": "tiny-pw"}),
+                ("/api/auth/login", {**LOGIN, "role": "admin"}),
+            ):
+                response = prefixed_client.post(path, json=body)
+                assert response.status_code == 422
+                assert body["password"] not in response.text
+                assert all("input" not in error for error in response.json()["detail"])
 
 
 def test_api_wrong_credentials_and_deactivation(storage, client):
