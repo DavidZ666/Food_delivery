@@ -1,5 +1,18 @@
 # AI Use and Provenance
 
+## Cart schemas and repository (#81)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: cart schemas, cart repository, `data/carts.json`,
+  `tests/test_cart_repo.py`, API contract and README.
+- Purpose and influence: define the cart contract and calculation rules and
+  persist one active cart per customer with stable IDs and malformed-storage
+  rejection.
+- Validation: 489 Python tests passed; representative data unchanged.
+- References: [Pydantic computed fields](https://docs.pydantic.dev/latest/concepts/fields/#the-computed_field-decorator),
+  [strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
 ## Customer/auth schemas and repository (#72)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

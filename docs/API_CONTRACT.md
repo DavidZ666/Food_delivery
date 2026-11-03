@@ -231,6 +231,53 @@ storage (invalid JSON, non-array, invalid records or roles, nonpositive or
 duplicate IDs, duplicate emails) is rejected with 500 without overwriting the
 file. Duplicate-email and unknown-ID writes leave the file unchanged.
 
+# M2 cart contract (#81)
+
+Schemas (`app/schemas/cart.py`) and storage (`app/repositories/cart_repo.py`,
+`data/carts.json`) are implemented. Endpoints are implemented by #82 (create,
+read), #84 (add item) and #86 (update, remove, clear). All require the cart
+owner's bearer token and an active account.
+
+| Method and path | Inputs | Success body | Status codes |
+|---|---|---|---|
+| POST `/customers/{customer_id}/cart` | Bearer token | `CartRead` | 200 (existing), 201, 401, 403, 404, 422, 500 |
+| GET `/customers/{customer_id}/cart` | Bearer token | `CartRead` | 200, 401, 403, 404, 422, 500 |
+| POST `/customers/{customer_id}/cart/items` | Bearer token, `CartItemAdd` | `CartRead` | 200, 401, 403, 404, 409, 422, 500 |
+| PATCH `/customers/{customer_id}/cart/items/{product_id}` | Bearer token, `CartItemUpdate` | `CartRead` | 200, 401, 403, 404, 422, 500 |
+| DELETE `/customers/{customer_id}/cart/items/{product_id}` | Bearer token | `CartRead` | 200, 401, 403, 404, 422, 500 |
+| DELETE `/customers/{customer_id}/cart/items` | Bearer token | `CartRead` | 200, 401, 403, 404, 422, 500 |
+
+| Situation | Result |
+|---|---|
+| Customer has no cart, or the cart has no such item | 404 `{"detail":"Cart not found"}` / `{"detail":"Cart item not found"}` |
+| Unknown menu item | 404 `{"detail":"Menu item not found"}` |
+| Unavailable item, or item from another restaurant while the cart is not empty | 409 `{"detail":"Menu item is unavailable"}` / `{"detail":"Cart contains items from another restaurant"}` |
+
+## Models and calculation
+
+- `CartItemAdd`: `product_id` (positive integer), `quantity` (default 1).
+  `CartItemUpdate`: `quantity`. Quantities are JSON integers `>= 1`; strings,
+  booleans and decimals return 422. Prices, names and restaurant come from the
+  menu item, never the client. Unknown fields return 422.
+- `CartRead`: `cart_id`, `customer_id`, `restaurant_id`, `items`, `subtotal`,
+  `total`. Each item has `product_id`, `name`, `unit_price`, `quantity`,
+  `line_total`. `restaurant_id` is null exactly when `items` is empty; a product
+  appears at most once (adding it again increases its quantity).
+- `line_total` = `unit_price` × `quantity`, `subtotal` = sum of line totals,
+  each rounded to 2 decimals. `total` = `subtotal` (no tax, fees or delivery
+  charge). Totals are calculated on every read and never stored. Checkout (#90)
+  recalculates from current menu prices.
+
+## Storage
+
+Each record is a `CartRead` without the calculated totals. A customer has at
+most one cart, which is their active cart; clearing it keeps its `cart_id`.
+IDs start at 1, then the maximum stored ID + 1; carts are not deleted, so IDs
+are not reused. Writes use the shared transaction and preserve other records
+and extra metadata. Malformed storage (invalid JSON, non-array, invalid
+records or quantities, inconsistent `restaurant_id`, duplicate products,
+nonpositive or duplicate cart IDs, more than one cart per customer) is
+rejected with 500 without overwriting the file.
 ## Registration and sign-in (#73)
 
 POST `/customers` with this JSON body returns 201 and `CustomerRead`:
