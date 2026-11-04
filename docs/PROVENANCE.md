@@ -1,5 +1,24 @@
 # AI Use and Provenance
 
+## Authentication and role guards (#77)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `app/core/auth.py`, `tests/test_auth_guards.py`, README and API contract.
+- Purpose and influence: implement reusable bearer authentication, current
+  account-state validation, explicit role checks and customer ownership checks.
+- TDD: existing customer/auth/cart baseline passed 110 tests; the new guard
+  suite produced 37 failures against interface stubs, then passed all 39 tests
+  after implementation. Tests use isolated storage and a test-only application.
+- Validation: 563 Python tests passed with one Windows skip (POSIX permissions),
+  including all 42 guard tests after adding three wrong-scheme cases from
+  independent review. All 30 frontend tests passed.
+  Representative data unchanged; `git diff --check` passed. Browser tests were
+  not run for this backend dependency change.
+- References (retrieved through Exa):
+  [FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
+  [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
+  [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

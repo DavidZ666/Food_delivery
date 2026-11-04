@@ -208,7 +208,9 @@ Customer registration (`POST /customers`) and sign-in (`POST /auth/login`) are
 available. Registration stores a salted password hash and returns an active
 customer account; sign-in returns an opaque bearer token valid for one hour.
 Sessions are in memory and end on server restart; accounts persist and can sign
-in again. Profile routes and authorization guards are separate follow-up tasks.
+in again. Reusable authentication, role and customer-ownership guards are available
+in `app/core/auth.py`; see [the guard contract](docs/API_CONTRACT.md#authentication-and-authorization-guards-77).
+Profile routes and applying guards to restaurant/menu writes are follow-up tasks.
 See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
 for request examples, error codes and the credential contract.
 
