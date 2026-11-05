@@ -279,6 +279,62 @@ and extra metadata. Malformed storage (invalid JSON, non-array, invalid
 records or quantities, inconsistent `restaurant_id`, duplicate products,
 nonpositive or duplicate cart IDs, more than one cart per customer) is
 rejected with 500 without overwriting the file.
+# M2 order contract (#89)
+
+Schemas (`app/schemas/order.py`) and storage (`app/repositories/order_repo.py`,
+`data/orders.json`) are implemented. Checkout is planned for #90 and order
+retrieval for #92. All endpoints require the customer's own bearer token and an
+active account, like the cart endpoints.
+
+| Method and path | Inputs | Success body | Status codes |
+|---|---|---|---|
+| POST `/customers/{customer_id}/checkout` (#90) | Bearer token | `Order` | 201, 401, 403, 404, 409, 422, 500 |
+| GET `/customers/{customer_id}/orders` (#92) | Bearer token | `Order[]` | 200, 401, 403, 422, 500 |
+| GET `/customers/{customer_id}/orders/{order_id}` (#92) | Bearer token | `Order` | 200, 401, 403, 404, 422, 500 |
+
+| Situation | Result |
+|---|---|
+| Customer has no cart | 404 `{"detail":"Cart not found"}` |
+| Cart has no items | 409 `{"detail":"Cart is empty"}` |
+| A cart item is no longer on the menu, is unavailable, or its restaurant no longer exists | 409 `{"detail":"Menu item is unavailable"}` |
+| Unknown order ID, or an order belonging to another customer | 404 `{"detail":"Order not found"}` |
+
+Checkout (#90) reads the current menu, so changed prices are not an error: the
+order uses the current price and name. The cart is cleared only after the order
+is saved; any failure leaves the cart unchanged. Orders are listed in creation
+order (ascending `order_id`).
+
+## Models and snapshot rules
+
+- `Order`: `order_id`, `customer_id`, `restaurant_id`, `delivery_address`
+  (the customer `DeliveryAddress` at checkout), `items`, `subtotal`, `total`,
+  `status`, `created_at`. New snapshots with unknown fields are rejected.
+- `OrderItem`: `product_id`, `name`, `unit_price` (> 0), `quantity` (JSON
+  integer >= 1), `line_total`. At least one item; a product appears once.
+- `status`: `placed`, the initial and only M2 status. Later lifecycle states
+  extend this enum.
+- `created_at`: UTC ISO 8601 with a `Z` suffix, for example
+  `2026-11-04T18:30:00Z` (fractional seconds allowed). `utc_timestamp()` formats it.
+- Unlike carts, an order is a historical record: `line_total`, `subtotal` and
+  `total` are stored, not recalculated from the menu. They must stay consistent:
+  `line_total` = `unit_price` x `quantity` rounded to 2 decimals, `subtotal` = sum
+  of line totals rounded to 2 decimals, and `total` = `subtotal` (no tax, fees or
+  delivery charge in M2). Inconsistent snapshots are rejected.
+
+## Order storage
+
+Each record is an `Order`. Order IDs start at 1, then the maximum stored ID + 1,
+allocated and appended in one shared transaction; concurrent checkouts get unique
+IDs. Orders are append-only, so IDs are never reused. Writes preserve other
+records and extra top-level metadata. Malformed storage (invalid JSON, non-array,
+invalid records, statuses or timestamps, inconsistent totals, nonpositive or
+duplicate order IDs) is rejected with 500 without overwriting the file; a missing
+file is not recreated.
+
+Verification: `python -m pytest tests/test_order_repo.py -q`. Explicit snapshot
+fixtures cover schema validation, total consistency, timestamps, ID allocation
+across a fresh process, concurrent creation, lookups and malformed storage.
+
 ## Registration and sign-in (#73)
 
 POST `/customers` with this JSON body returns 201 and `CustomerRead`:
