@@ -1,5 +1,19 @@
 # AI Use and Provenance
 
+## Cart numeric range review (#115)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: cart repository, service and route; add-to-cart regression tests;
+  API contract.
+- Purpose: reject unrepresentable line totals and subtotals inside the storage
+  transaction, so large quantities cannot persist a broken cart.
+- Validation: four regressions failed before the fix; 684 Python tests passed,
+  with one existing Windows skip, after the fix.
+- Follow-up: the targeted OpenAPI assertion passes; 422 documents both request
+  validation details and the overflow error, with both schema references resolved.
+- References (retrieved with Exa): [Python finite-number checks](https://docs.python.org/3/library/math.html#math.isfinite),
+  [JSON numeric serialization](https://docs.python.org/3/library/json.html#json.dump).
+
 ## Add to cart (#84)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

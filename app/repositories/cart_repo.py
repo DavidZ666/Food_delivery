@@ -1,8 +1,10 @@
+from math import isfinite
+
 from pydantic import TypeAdapter
 
 from app.core.config import get_data_dir
 from app.repositories.json_store import read_json_array, update_json
-from app.schemas.cart import CartRecord
+from app.schemas.cart import CartRead, CartRecord
 
 
 class CartNotFoundError(LookupError):
@@ -82,6 +84,20 @@ class RestaurantConflictError(ValueError):
     pass
 
 
+class CartTotalError(ValueError):
+    pass
+
+
+def _validate_totals(record: dict) -> None:
+    """Reject totals that cannot be returned as JSON numbers before committing."""
+    try:
+        total = CartRead.model_validate(record).total
+    except OverflowError:
+        raise CartTotalError("Cart total is too large") from None
+    if not isfinite(total):
+        raise CartTotalError("Cart total is too large")
+
+
 def add_item(customer_id: int, restaurant_id: int, line: dict) -> dict:
     """Add a priced line to the customer's cart in one transaction.
 
@@ -105,6 +121,7 @@ def add_item(customer_id: int, restaurant_id: int, line: dict) -> dict:
             validated = CartRecord.model_validate(
                 {**record, "restaurant_id": restaurant_id, "items": items}, strict=True,
             ).model_dump()
+            _validate_totals(validated)
             updated = {**record, "restaurant_id": validated["restaurant_id"], "items": validated["items"]}
             return [*records[:index], updated, *records[index + 1:]], updated
         raise CartNotFoundError("Cart not found")

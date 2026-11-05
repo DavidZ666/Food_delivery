@@ -40,6 +40,7 @@ class MenuItemUnavailableError(ValueError):
 
 
 RestaurantConflictError = cart_repo.RestaurantConflictError
+CartTotalError = cart_repo.CartTotalError
 
 
 def _menu_item(product_id: int) -> dict:
