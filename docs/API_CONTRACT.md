@@ -328,3 +328,46 @@ Verification: `python -m pytest tests/test_customer_auth.py tests/test_customer_
 Tests use temporary storage and cover real-process restart/login, duplicate and
 invalid registration, inactive accounts, storage failures, token expiry and
 tampering, password secrecy, and generated OpenAPI request/response contracts.
+
+### Authentication and authorization guards (#77)
+
+`app/core/auth.py` provides reusable FastAPI dependencies:
+
+| Dependency | Behavior |
+|---|---|
+| `get_current_customer` | Resolve the bearer token and reload the active account from storage; return `CustomerRead` without its password hash. Accepts any supported role. |
+| `require_roles(*roles)` | Require one of the explicitly allowed roles: `customer`, `restaurant_owner`, `admin`. No role inheritance; an empty allowlist denies everyone; unknown role names raise `ValueError` when the guard is defined. |
+| `require_customer_owner` | Require the `customer` role and a matching `customer_id` path parameter. No admin bypass; endpoints allowing administrators must define that policy separately. |
+
+Compose the dependencies with `Depends`, for example:
+
+```python
+from typing import Annotated
+from fastapi import Depends
+from app.core.auth import require_roles
+from app.schemas.customer import CustomerRead
+
+def manage_menu(
+    account: Annotated[CustomerRead, Depends(require_roles("restaurant_owner", "admin"))],
+):
+    ...
+```
+
+Missing, malformed, unknown, expired or tampered credentials, and tokens for
+removed accounts, return 401 `{"detail":"Invalid credentials"}` with
+`WWW-Authenticate: Bearer`. Tokens must be sent in the `Authorization` header;
+query parameters and cookies do not authenticate a request. Inactive accounts,
+disallowed roles and failed ownership checks return 403 `{"detail":"Forbidden"}`.
+Account state and role changes apply on the next request, including to existing
+tokens. Storage failures remain 500; the guards do not write account data.
+
+Composed routes declare HTTP bearer security in OpenAPI. This issue provides the
+guards; #78 applies them to restaurant/menu writes and #75 to customer operations.
+
+Verification: `python -m pytest tests/test_auth_guards.py -q`. Isolated tests cover
+the full role matrix, ownership, deactivation and role changes after sign-in,
+token rejection, storage errors, secret exclusion and OpenAPI composition.
+Implementation references (retrieved through Exa):
+[FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
+[current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
+[dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
