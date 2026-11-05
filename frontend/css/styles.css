@@ -1,82 +1,314 @@
-/* just basic styling for now, M1 doesn't grade how it looks */
+/* ByteBites design system (#111). Tokens first; components reuse them. */
+:root {
+  --paper: #F3F6F1;
+  --surface: #FFFFFF;
+  --ink: #17302A;
+  --muted: #4A6359;
+  --line: #C9D5CC;
+  --accent: #A3193A;
+  --accent-soft: #F8E4E8;
+  --on-accent: #FFFFFF;
+  --danger: #B42318;
+  --success: #1D6B3F;
+  --focus: #2747B8;
+
+  --font: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: 1.625rem;
+  --step-3: clamp(2.25rem, 5vw, 3.75rem);
+  --step-4: clamp(2.75rem, 8vw, 5.75rem);
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.5rem;
+  --space-5: 4rem;
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --page: 72rem;
+  --measure: 46rem;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0E1A16;
+    --surface: #15241F;
+    --ink: #E4EDE7;
+    --muted: #A3B7AC;
+    --line: #2A3D36;
+    --accent: #F48A9C;
+    --accent-soft: #3B1A22;
+    --on-accent: #2A0710;
+    --danger: #FF8F80;
+    --success: #74D39F;
+    --focus: #8EA9FF;
+  }
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("../fonts/bricolage-grotesque-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("../fonts/bricolage-grotesque-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Base */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
   margin: 0;
-  color: #1f2328;
-  background: #ffffff;
+  font-family: var(--font);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
 }
 
-header {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #d0d7de;
+h1, h2, h3 { line-height: 1.1; margin: 0 0 var(--space-2); text-wrap: balance; }
+h1 { font-size: var(--step-3); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: var(--step-2); font-weight: 700; letter-spacing: -0.015em; }
+h3 { font-size: var(--step-1); font-weight: 700; }
+p { margin: 0 0 var(--space-2); }
+img { max-width: 100%; height: auto; }
+
+a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 1.5px; }
+a:hover { text-decoration-thickness: 3px; }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
-header a {
+[hidden] { display: none !important; }
+
+/* Page chrome */
+.skip-link {
+  position: absolute;
+  left: var(--space-2);
+  top: -4rem;
+  z-index: 10;
+  padding: var(--space-1) var(--space-2);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  border-radius: var(--radius-control);
+}
+.skip-link:focus { top: var(--space-1); }
+
+.site-header { border-bottom: 1px solid var(--line); }
+.site-header__inner {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: var(--space-2) clamp(1rem, 4vw, 2.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  color: var(--ink);
+  font-size: var(--step-1);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+}
+/* The mark: a cherry with a bite taken out of it. */
+.brand::before {
+  content: "";
+  width: 0.85em;
+  height: 0.85em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 100% 0, transparent 0.32em, var(--accent) 0.33em);
+}
+
+.site-header nav { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.site-header nav a {
+  color: var(--muted);
   font-weight: 600;
   text-decoration: none;
+  padding-block: 0.25rem;
+}
+.site-header nav a:hover { color: var(--ink); }
+.site-header nav a[aria-current="page"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.4em;
 }
 
 main {
-  max-width: 40rem;
+  max-width: var(--page);
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--space-4) clamp(1rem, 4vw, 2.5rem) var(--space-5);
 }
 
-fieldset {
-  margin: 0 0 1rem;
-  border: 1px solid #d0d7de;
-}
+.back { margin-bottom: var(--space-3); font-weight: 600; }
 
-details {
-  margin-bottom: 1rem;
-}
+/* Search hero: the one loud element. */
+.hero { margin-bottom: var(--space-5); }
+.hero h1 { font-size: var(--step-4); line-height: 0.95; letter-spacing: -0.045em; max-width: 11ch; }
+.hero .lede { color: var(--muted); font-size: var(--step-1); max-width: 34rem; margin-bottom: var(--space-4); }
 
-.field {
-  margin-bottom: 0.75rem;
+#restaurant-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem) auto;
+  align-items: end;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-panel);
+  max-width: 56rem;
 }
+#restaurant-search label { display: block; font-size: var(--step--1); font-weight: 600; color: var(--muted); margin-bottom: 0.2rem; }
 
-.field label {
-  display: block;
-  font-weight: 600;
-}
-
-.field input,
-.field textarea {
+/* Controls */
+input, select, textarea {
   width: 100%;
-  box-sizing: border-box;
-  padding: 0.4rem;
   font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--muted);
+  border-radius: var(--radius-control);
+  padding: 0.6rem 0.8rem;
+  min-height: 3rem;
 }
+input:hover, select:hover, textarea:hover { border-color: var(--ink); }
+textarea { resize: vertical; }
+
+button {
+  font: inherit;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius-control);
+  padding: 0.7rem 1.4rem;
+  min-height: 3rem;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+button:hover { background: color-mix(in srgb, var(--accent) 85%, var(--ink)); }
+button:disabled { opacity: 0.65; cursor: wait; }
 
 [aria-invalid="true"] {
-  border: 2px solid #cf222e;
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
 }
 
-.field-error,
-#form-status[data-kind="error"] {
-  color: #cf222e;
-  margin: 0.25rem 0 0;
+/* Status and feedback */
+[role="status"]:empty { display: none; }
+[role="status"] { color: var(--muted); }
+[data-kind="error"], .field-error { color: var(--danger); }
+[data-kind="error"], [data-kind="success"] {
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid currentColor;
+  background: var(--surface);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }
+[data-kind="success"] { color: var(--success); }
+.field-error { margin: 0.3rem 0 0; font-size: var(--step--1); font-weight: 600; }
+.field-error:empty { display: none; }
 
-#form-status[data-kind="success"] {
-  color: #1a7f37;
+/* Restaurant and menu lists: rows on rules, not boxed cards. */
+#restaurant-list, #menu-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  column-gap: var(--space-4);
 }
-
-dt {
+#restaurant-list li, #menu-list li { border-top: 1px solid var(--line); padding: var(--space-3) 0; }
+#restaurant-list h3, #menu-list h3 { font-size: var(--step-2); letter-spacing: -0.02em; margin-bottom: var(--space-1); }
+#restaurant-list h3 a, #menu-list h3 a { color: var(--ink); text-decoration: none; }
+#restaurant-list h3 a:hover, #menu-list h3 a:hover { color: var(--accent); text-decoration: underline; }
+#restaurant-list p, #menu-list p { color: var(--muted); margin: 0; }
+#restaurant-list li > p:first-of-type {
+  display: inline-block;
+  margin-bottom: var(--space-1);
+  padding: 0.1rem 0.65rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  font-size: var(--step--1);
   font-weight: 600;
 }
 
-dd {
-  margin: 0 0 0.5rem;
+/* Details */
+dl { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0 0 var(--space-4); max-width: var(--measure); }
+dt { font-size: var(--step--1); font-weight: 600; color: var(--muted); }
+dd { margin: 0 0 var(--space-2); }
+@media (min-width: 40rem) {
+  dl { grid-template-columns: 11rem minmax(0, 1fr); column-gap: var(--space-3); }
+  dt { padding-top: 0.15rem; }
 }
 
-/* Customer browsing pages. */
-nav { display: flex; flex-wrap: wrap; gap: 1rem; }
-#restaurant-search { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem; }
-#restaurant-search label { display: block; font-weight: 600; }
-#restaurant-search input, #restaurant-search select, button { padding: 0.45rem; font: inherit; }
-#restaurant-list, #menu-list { list-style: none; padding: 0; }
-#restaurant-list li, #menu-list li { border: 1px solid #d0d7de; border-radius: 0.4rem; padding: 0.75rem 1rem; margin: 0.75rem 0; }
-#restaurant-list h3, #menu-list h3 { margin: 0 0 0.5rem; }
-button:disabled { cursor: wait; }
+#item-image { border-radius: var(--radius-panel); margin-bottom: var(--space-3); }
+#menu-section { margin-top: var(--space-4); }
+#retry-menu { margin-bottom: var(--space-2); }
+
+/* Forms */
+form, #created-restaurant, main > .field { max-width: var(--measure); }
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  column-gap: var(--space-3);
+}
+legend { font-size: var(--step-1); font-weight: 700; padding: 0; margin-bottom: var(--space-2); }
+.field { margin-bottom: var(--space-2); min-width: 0; }
+.field:has(textarea), .field:has([type="url"]) { grid-column: 1 / -1; }
+#editing-heading { margin-top: var(--space-4); }
+.field label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+.field label span { color: var(--accent); }
+
+details { margin-bottom: var(--space-4); border-top: 1px solid var(--line); padding-top: var(--space-2); }
+summary { font-weight: 700; cursor: pointer; margin-bottom: var(--space-2); }
+summary::marker { color: var(--accent); }
+details fieldset { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+details legend { font-size: var(--step-0); color: var(--muted); font-weight: 600; }
+
+#created-restaurant {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+/* Narrow screens */
+@media (max-width: 40rem) {
+  #restaurant-search { grid-template-columns: minmax(0, 1fr); }
+  #restaurant-search button { width: 100%; }
+  .site-header nav { gap: var(--space-1) var(--space-2); font-size: 0.9375rem; }
+  main { padding-top: var(--space-3); }
+  .hero { margin-bottom: var(--space-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

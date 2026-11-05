@@ -1,5 +1,38 @@
 # AI Use and Provenance
 
+## PR #112 accessibility review
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: control borders in `frontend/css/styles.css` and browser contrast
+  regressions in `tests/browser/layout.spec.mjs`.
+- Finding: the decorative border token gave empty inputs only 1.51:1 contrast
+  in light mode and 1.40:1 in dark mode. Controls now use the existing muted
+  text color for their border, preserving the decorative separators.
+- Validation: both browser regressions failed before the fix; they check the
+  rendered control boundaries against adjacent backgrounds in both schemes.
+  After the fix: 553 Python tests passed (1 Windows skip), 30 frontend tests
+  and 20 browser tests passed; `git diff --check` passed.
+- Reference: [WCAG 2.2 non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast)
+  (official guidance retrieved through Exa).
+
+## Frontend visual design (#111)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `frontend/css/styles.css`, shared page header and search hero in
+  the five pages, self-hosted Bricolage Grotesque (OFL) in `frontend/fonts/`,
+  `tests/test_frontend_design.py`, `tests/browser/layout.spec.mjs` and README.
+- Purpose and influence: replace placeholder M1 styling with one accessible
+  design system (tokens, light/dark schemes, shared navigation) for M2 views.
+  Existing IDs, labels, accessible names and JavaScript behavior are unchanged.
+- TDD: 29 Python and 5 browser design tests failed before implementation, then
+  passed; design was reviewed from light/dark desktop and mobile screenshots.
+- Validation: 553 Python tests (1 Windows skip), 30 frontend tests and 18
+  browser tests passed; representative data unchanged.
+- References: [WCAG 2.2 contrast minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html),
+  [prefers-color-scheme](https://developer.mozilla.org/docs/Web/CSS/@media/prefers-color-scheme),
+  [Bricolage Grotesque](https://github.com/ateliertriay/bricolage).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
