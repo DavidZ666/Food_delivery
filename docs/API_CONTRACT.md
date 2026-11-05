@@ -186,10 +186,9 @@ All writes target temporary files; representative `data/` files stay unchanged.
 
 Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
 (`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
-Registration and sign-in endpoints are implemented by #73. Profile and
-deactivation endpoints remain planned for #75; bearer authentication guards and
-role enforcement remain planned for #77/#78. The table includes these planned
-operations; only POST `/customers` and POST `/auth/login` are implemented here.
+Registration and sign-in endpoints are implemented by #73; profile and
+deactivation endpoints by #75 (see [profile and deactivation](#profile-and-deactivation-75)).
+Restaurant/menu role enforcement remains planned for #78.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
@@ -371,3 +370,27 @@ Implementation references (retrieved through Exa):
 [FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
 [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
 [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+### Profile and deactivation (#75)
+
+GET/PATCH `/customers/{customer_id}` and POST `/customers/{customer_id}/deactivate`
+depend on `require_account_access`: an active signed-in account may manage its
+own ID, and an `admin` may manage any ID. Unlike `require_customer_owner`, this
+allows administrators and restaurant owners managing their own account.
+
+- Order of checks: 401 credentials, 403 inactive account or another account,
+  422 request validation, then 404 `{"detail":"Customer not found"}` (reachable
+  only by administrators). Rejected requests do not modify storage.
+- PATCH accepts `CustomerUpdate` and persists all supplied fields in one
+  transaction; `delivery_address` merges by subfield and text is trimmed.
+- Deactivation persists `is_active: false`, keeps the record and ID (IDs are not
+  reused) and returns the updated `CustomerRead`. Existing tokens then receive
+  403, and sign-in returns 403.
+- `customer_service.require_active_customer(customer_id)` is the shared check for
+  Cart and Checkout. It returns `CustomerRead`, or raises `CustomerNotFoundError`
+  or `InactiveCustomerError`.
+
+Verification: `python -m pytest tests/test_customer_profile.py -q`. Isolated tests
+cover profile reads, partial and address updates, 401/403/404/422 without storage
+changes, deactivation, restart persistence in a fresh process, active-customer
+validation and OpenAPI security.
