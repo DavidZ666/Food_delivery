@@ -2,6 +2,7 @@
 
 ## Authentication and role guards (#77)
 
+- Student: Zihan Tao (GitHub `freesialuo`).
 - Label: AI-GENERATED; AI tool: OpenAI Codex.
 - Artifacts: `app/core/auth.py`, `tests/test_auth_guards.py`, README and API contract.
 - Purpose and influence: implement reusable bearer authentication, current
@@ -9,9 +10,9 @@
 - TDD: existing customer/auth/cart baseline passed 110 tests; the new guard
   suite produced 37 failures against interface stubs, then passed all 39 tests
   after implementation. Tests use isolated storage and a test-only application.
-- Validation: 563 Python tests passed with one Windows skip (POSIX permissions),
-  including all 42 guard tests after adding three wrong-scheme cases from
-  independent review. All 30 frontend tests passed.
+- Validation: 566 Python tests passed with one Windows skip (POSIX permissions),
+  including all 45 guard tests after adding wrong-scheme and unknown-role cases
+  from review. All 30 frontend tests passed.
   Representative data unchanged; `git diff --check` passed. Browser tests were
   not run for this backend dependency change.
 - References (retrieved through Exa):

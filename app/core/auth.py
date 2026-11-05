@@ -1,7 +1,7 @@
 """Reusable authentication and authorization dependencies."""
 
 from collections.abc import Callable
-from typing import Annotated
+from typing import Annotated, get_args
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -32,6 +32,10 @@ def get_current_customer(
 
 def require_roles(*roles: Role) -> Callable[..., CustomerRead]:
     """Allow only the explicitly listed roles; an empty list denies everyone."""
+    unknown = set(roles) - set(get_args(Role))
+    if unknown:
+        raise ValueError(f"Unknown role(s): {', '.join(sorted(unknown))}")
+
     def check_role(
         customer: Annotated[CustomerRead, Depends(get_current_customer)],
     ) -> CustomerRead:

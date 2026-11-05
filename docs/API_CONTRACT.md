@@ -336,7 +336,7 @@ tampering, password secrecy, and generated OpenAPI request/response contracts.
 | Dependency | Behavior |
 |---|---|
 | `get_current_customer` | Resolve the bearer token and reload the active account from storage; return `CustomerRead` without its password hash. Accepts any supported role. |
-| `require_roles(*roles)` | Require one of the explicitly allowed roles: `customer`, `restaurant_owner`, `admin`. No role inheritance; an empty allowlist denies everyone. |
+| `require_roles(*roles)` | Require one of the explicitly allowed roles: `customer`, `restaurant_owner`, `admin`. No role inheritance; an empty allowlist denies everyone; unknown role names raise `ValueError` when the guard is defined. |
 | `require_customer_owner` | Require the `customer` role and a matching `customer_id` path parameter. No admin bypass; endpoints allowing administrators must define that policy separately. |
 
 Compose the dependencies with `Depends`, for example:

@@ -242,6 +242,12 @@ def test_no_allowed_roles_denies_access(accounts):
     assert error.value.status_code == 403
 
 
+@pytest.mark.parametrize("roles", [("owner",), ("customer", "restaurant-owner"), ("Admin",)])
+def test_unknown_roles_are_rejected_when_guard_is_defined(roles):
+    with pytest.raises(ValueError, match="Unknown role"):
+        auth.require_roles(*roles)
+
+
 def test_openapi_declares_bearer_security_for_composed_guards(guarded_client):
     spec = guarded_client.get("/openapi.json").json()
     assert spec["components"]["securitySchemes"]["HTTPBearer"]["type"] == "http"
