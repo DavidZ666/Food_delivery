@@ -3,17 +3,19 @@ import os
 import stat
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from threading import Lock
+from threading import RLock
 from typing import Any, Callable, TypeVar
 
 
 T = TypeVar("T")
-# Covers the entire transaction, not just replacement. One application process.
-_write_lock = Lock()
+# Covers whole transactions and every read. Windows cannot replace a file that
+# another thread has open, so reads must not overlap a write (#117). Reentrant so
+# a transaction can read. One application process.
+_storage_lock = RLock()
 
 
 def read_json(file_path: Path):
-    with file_path.open("r", encoding="utf-8") as file:
+    with _storage_lock, file_path.open("r", encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -31,7 +33,7 @@ def update_json(file_path: Path, transform: Callable[[Any], tuple[Any, T]]) -> T
     before replacement leave the original untouched. Readers see either the
     old or new document. Multiple application processes are not supported.
     """
-    with _write_lock:
+    with _storage_lock:
         updated, result = transform(read_json(file_path))
         mode = stat.S_IMODE(file_path.stat().st_mode)
         temporary_path = None

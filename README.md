@@ -217,7 +217,8 @@ The restaurant request follows this path:
 Route → Service → Repository → JSON file
 
 Restaurant and menu writes serialize the complete read/modify/write
-operation within one process. They sync a temporary file in the data directory
+operation within one process, and reads wait for any write in progress so
+replacement also works on Windows (#117). They sync a temporary file in the data directory
 before atomically replacing the target; failures before replacement preserve
 the original file and clean up temporary files.
 Run **one application worker** against a local data directory. Multiple
