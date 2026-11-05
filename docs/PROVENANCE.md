@@ -1,18 +1,36 @@
 # AI Use and Provenance
 
-## Cart numeric range review (#115)
+## Cart numeric range review (#115, #116)
 
 - Label: AI-GENERATED; AI tool: OpenAI Codex.
-- Artifacts: cart repository, service and route; add-to-cart regression tests;
+- Artifacts: cart repository, service and routes; add/edit regression tests;
   API contract.
 - Purpose: reject unrepresentable line totals and subtotals inside the storage
-  transaction, so large quantities cannot persist a broken cart.
-- Validation: four regressions failed before the fix; 684 Python tests passed,
+  transaction, so adding items or changing quantities cannot persist a broken cart.
+- Validation: six regressions failed before the fix; 723 Python tests passed,
   with one existing Windows skip, after the fix.
-- Follow-up: the targeted OpenAPI assertion passes; 422 documents both request
-  validation details and the overflow error, with both schema references resolved.
+- Follow-up: two targeted OpenAPI assertions failed first, then passed; POST/PATCH
+  422 schemas include validation and overflow errors with resolved references.
 - References (retrieved with Exa): [Python finite-number checks](https://docs.python.org/3/library/math.html#math.isfinite),
   [JSON numeric serialization](https://docs.python.org/3/library/json.html#json.dump).
+
+## Update, remove and clear the cart (#86)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: cart repository transaction helper (`_change_items`) with
+  `set_quantity`, `remove_item` and `clear`; cart service and routes;
+  `tests/test_cart_edit.py`; API contract and README.
+- Purpose and influence: let customers change quantities, remove items and clear
+  the cart. Emptying the cart releases its restaurant binding. `add_item` now
+  shares the same transaction helper.
+- TDD: all 37 new tests failed before implementation (missing service functions
+  and routes), then passed.
+- Validation: 717 Python tests passed with one Windows skip. The cart test files
+  also pass without UTF-8 mode, all 30 frontend tests pass, and representative
+  data is unchanged.
+- References: [FastAPI path parameter validation](https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/),
+  [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
 
 ## Add to cart (#84)
 
