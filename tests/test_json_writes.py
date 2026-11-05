@@ -113,3 +113,67 @@ def test_concurrent_creates_are_unique_and_preserve_records(data_dir):
     assert {record["name"] for record in stored[2:]} == {
         f"Restaurant {index}" for index in range(24)}
     assert not list(data_dir.glob("*.tmp"))
+
+
+def test_write_waits_for_an_in_progress_read(tmp_path, monkeypatch):
+    """Windows cannot replace a file another thread has open (#117)."""
+    import threading
+    import time
+
+    path = tmp_path / "items.json"
+    path.write_text("[1]", encoding="utf-8")
+    reading, release = threading.Event(), threading.Event()
+    events, results, errors = [], [], []
+    load, replace = json.load, json_store.os.replace
+
+    def slow_load(file):
+        if threading.current_thread().name == "reader":
+            reading.set()
+            release.wait(5)
+            events.append("read done")
+        return load(file)
+
+    def record_replace(source, destination):
+        events.append("replace")
+        replace(source, destination)
+
+    def run(name, action):
+        def target():
+            try:
+                results.append((name, action()))
+            except Exception as exc:  # recorded for the assertion below
+                errors.append(exc)
+        thread = threading.Thread(target=target, name=name)
+        thread.start()
+        return thread
+
+    monkeypatch.setattr(json_store.json, "load", slow_load)
+    monkeypatch.setattr(json_store.os, "replace", record_replace)
+    reader = run("reader", lambda: json_store.read_json_array(path))
+    assert reading.wait(5)
+    writer = run("writer", lambda: json_store.update_json(path, lambda records: ([*records, 2], "written")))
+    time.sleep(0.2)
+    release.set()
+    reader.join(5)
+    writer.join(5)
+    assert errors == []
+    assert events == ["read done", "replace"]
+    assert sorted(results) == [("reader", [1]), ("writer", "written")]
+    assert json.loads(path.read_text(encoding="utf-8")) == [1, 2]
+
+
+def test_concurrent_reads_and_writes_do_not_fail(tmp_path):
+    path = tmp_path / "items.json"
+    path.write_text("[]", encoding="utf-8")
+
+    def write(value):
+        return json_store.update_json(path, lambda records: ([*records, value], value))
+
+    def read(_):
+        return len(json_store.read_json_array(path))
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futures = [pool.submit(write if index % 3 == 0 else read, index) for index in range(300)]
+        for future in futures:
+            future.result()
+    assert sorted(json.loads(path.read_text(encoding="utf-8"))) == list(range(0, 300, 3))

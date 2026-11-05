@@ -1,5 +1,22 @@
 # AI Use and Provenance
 
+## Serialize JSON reads with writes (#117)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/repositories/json_store.py`, `tests/test_json_writes.py`,
+  API contract and README.
+- Purpose and influence: reads now share the storage lock (reentrant), so a
+  write never replaces a file another thread has open. Windows rejects that
+  replacement with `PermissionError`; found by concurrent cart tests in #86.
+- TDD: the deterministic in-progress-read test failed in UTF-8 and locale modes,
+  and the read/write stress test failed intermittently on Windows; both passed
+  after the fix (storage tests 5/5 runs without UTF-8 mode).
+- Validation: 523 Python tests passed with one Windows skip; representative
+  data unchanged.
+- References: [os.replace](https://docs.python.org/3/library/os.html#os.replace),
+  [threading.RLock](https://docs.python.org/3/library/threading.html#rlock-objects).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
