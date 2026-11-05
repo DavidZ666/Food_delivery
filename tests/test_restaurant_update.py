@@ -17,15 +17,15 @@ from app.services import restaurant_service
 
 def test_update_preserves_records_metadata_products_and_reads(client, data_dir):
     path = data_dir / 'restaurants.json'
-    records = json.loads(path.read_text())
+    records = json.loads(path.read_text(encoding='utf-8'))
     records[0]['future_metadata'] = {'enabled': True}
-    path.write_text(json.dumps(records))
+    path.write_text(json.dumps(records), encoding='utf-8')
     products = data_dir / 'products.json'
     products.write_text(json.dumps([{
         'product_id': 1, 'restaurant_id': 101, 'name': 'Taco',
         'description': 'Bean taco', 'price': 4.5, 'category': 'Main',
         'image': '', 'is_available': True,
-    }]))
+    }]), encoding='utf-8')
     original_products = products.read_bytes()
     response = client.patch('/restaurants/101', json={
         'name': '  Updated Café  ', 'cuisine': ' Fusion ',
@@ -34,7 +34,7 @@ def test_update_preserves_records_metadata_products_and_reads(client, data_dir):
         'description': None, 'logo_url': 'https://example.com/new.png',
     })
     assert response.status_code == 200
-    saved = json.loads(path.read_text())
+    saved = json.loads(path.read_text(encoding='utf-8'))
     expected = {**records[0], 'name': 'Updated Café', 'cuisine': 'Fusion',
                 'description': None, 'logo_url': 'https://example.com/new.png',
                 'location': {**records[0]['location'], 'city': 'Vancouver'},
@@ -93,26 +93,26 @@ def test_invalid_path(client, identifier):
 
 def test_empty_store_returns_404(client, data_dir):
     path = data_dir / 'restaurants.json'
-    path.write_text('[]')
+    path.write_text('[]', encoding='utf-8')
     assert client.patch('/restaurants/101', json={'name': 'New'}).status_code == 404
-    assert path.read_text() == '[]'
+    assert path.read_text(encoding='utf-8') == '[]'
 
 
 @pytest.mark.parametrize('stored', ['{invalid', '{}', '[{"id":101}]'])
 def test_invalid_store_preserved(data_dir, stored):
     path = data_dir / 'restaurants.json'
-    path.write_text(stored)
+    path.write_text(stored, encoding='utf-8')
     with TestClient(app, raise_server_exceptions=False) as http:
         assert http.patch('/restaurants/101', json={'name': 'New'}).status_code == 500
-    assert path.read_text() == stored
+    assert path.read_text(encoding='utf-8') == stored
 
 
 @pytest.mark.parametrize('identifier', [0, -1, True, '101', 101.0, 102])
 def test_bad_stored_ids_preserved(data_dir, identifier):
     path = data_dir / 'restaurants.json'
-    records = json.loads(path.read_text())
+    records = json.loads(path.read_text(encoding='utf-8'))
     records[0]['id'] = identifier
-    path.write_text(json.dumps(records))
+    path.write_text(json.dumps(records), encoding='utf-8')
     before = path.read_bytes()
     with TestClient(app, raise_server_exceptions=False) as http:
         assert http.patch('/restaurants/101', json={'name': 'New'}).status_code == 500
@@ -132,7 +132,7 @@ def test_write_failure_preserves_original_and_products(data_dir, monkeypatch, fa
     path = data_dir / 'restaurants.json'
     before = path.read_bytes()
     products = data_dir / 'products.json'
-    products.write_text('[{"product_id":1,"restaurant_id":101}]')
+    products.write_text('[{"product_id":1,"restaurant_id":101}]', encoding='utf-8')
     before_products = products.read_bytes()
 
     def fail(*args, **kwargs):
@@ -167,7 +167,7 @@ with TestClient(app) as client:
         [sys.executable, '-c', script],
         cwd=Path(__file__).resolve().parents[1],
         env={**os.environ, 'FOOD_DELIVERY_DATA_DIR': str(data_dir)},
-        capture_output=True, text=True, check=True, timeout=15,
+        capture_output=True, text=True, check=True, timeout=15, encoding='utf-8',
     )
     listed, detail = json.loads(result.stdout)
     assert listed[0] == detail == response.json()

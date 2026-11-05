@@ -54,7 +54,7 @@ def test_menu_preserves_order_fields_and_availability(client, menu_data):
 
 @pytest.mark.parametrize("products", [[], [{"product_id": 1, "restaurant_id": 102}]])
 def test_existing_restaurant_empty_menu(client, data_dir, products):
-    (data_dir / "products.json").write_text(json.dumps(products))
+    (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
     response = client.get("/restaurants/101/menu")
     assert response.status_code == 200
     assert response.json() == []
@@ -75,7 +75,7 @@ def test_missing_resource(client, menu_data, path, detail):
 
 @pytest.mark.parametrize("path", ["/restaurants/101/menu", "/restaurants/101/menu/8"])
 def test_empty_restaurant_store_is_not_an_empty_menu(client, data_dir, path):
-    (data_dir / "restaurants.json").write_text("[]")
+    (data_dir / "restaurants.json").write_text("[]", encoding="utf-8")
     response = client.get(path)
     assert response.status_code == 404
     assert response.json() == {"detail": "Restaurant not found"}
@@ -98,7 +98,7 @@ def test_storage_failures_propagate(client, data_dir, menu_data, file_name, fail
         file_path.rename(data_dir / f"unavailable-{file_name}")
         error = FileNotFoundError
     else:
-        file_path.write_text("{invalid")
+        file_path.write_text("{invalid", encoding="utf-8")
         error = json.JSONDecodeError
     with pytest.raises(error):
         client.get(path)
@@ -108,7 +108,7 @@ def test_storage_failures_propagate(client, data_dir, menu_data, file_name, fail
 def test_invalid_product_rejected_by_response_model(client, data_dir, path):
     (data_dir / "products.json").write_text(json.dumps([
         {"product_id": 8, "restaurant_id": 101, "name": "Incomplete"}
-    ]))
+    ]), encoding="utf-8")
     with pytest.raises(ResponseValidationError):
         client.get(path)
 
@@ -142,7 +142,7 @@ def test_created_item_is_visible_through_read_routes(client, menu_data):
     assert client.get("/restaurants/102/menu").json() == [menu_data[1]]
 
 def test_create_in_empty_store_starts_at_id_1(client, data_dir):
-    (data_dir / "products.json").write_text("[]")
+    (data_dir / "products.json").write_text("[]", encoding="utf-8")
 
     response = client.post("/restaurants/101/menu", json=NEW_ITEM)
 
@@ -248,7 +248,7 @@ def test_delete_last_item_leaves_empty_menu(client, data_dir):
     (data_dir / "products.json").write_text(json.dumps([
         {"product_id": 1, "restaurant_id": 101, "name": "Only", "description": "",
          "price": 1.0, "category": "Main", "image": "", "is_available": True},
-    ]))
+    ]), encoding="utf-8")
 
     assert client.delete("/restaurants/101/menu/1").status_code == 204
     assert client.get("/restaurants/101/menu").json() == []

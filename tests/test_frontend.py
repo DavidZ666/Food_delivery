@@ -154,7 +154,7 @@ def test_edit_form_fields_match_api_update_schema(client):
 )
 def test_update_payloads_save_the_form_values(client, data_dir, case):
     # node tests check toUpdatePayload builds these same bodies
-    (data_dir / "restaurants.json").write_text(json.dumps([case["original"]]))
+    (data_dir / "restaurants.json").write_text(json.dumps([case["original"]]), encoding="utf-8")
     response = client.patch(f"/restaurants/{case['original']['id']}", json=case["payload"])
     assert response.status_code == 200
     expected = {field: value.strip() for field, value in case["values"].items()}

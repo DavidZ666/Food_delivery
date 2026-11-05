@@ -26,8 +26,8 @@ def contract(client, data_dir):
     spec = client.get("/openapi.json").json()
     restaurant = spec["paths"]["/restaurants/{restaurant_id}"]["get"]["responses"]["200"]["content"]["application/json"]["example"]
     item = spec["paths"]["/restaurants/{restaurant_id}/menu/{product_id}"]["get"]["responses"]["200"]["content"]["application/json"]["example"]
-    (data_dir / "restaurants.json").write_text(json.dumps([restaurant]))
-    (data_dir / "products.json").write_text(json.dumps([item]))
+    (data_dir / "restaurants.json").write_text(json.dumps([restaurant]), encoding="utf-8")
+    (data_dir / "products.json").write_text(json.dumps([item]), encoding="utf-8")
     return spec
 
 
@@ -50,7 +50,7 @@ def test_documented_success_examples_execute(client, data_dir, contract, method,
         assert parameter["schema"]["examples"]
     if method == "post":
         target = "restaurants.json" if path == "/restaurants" else "products.json"
-        (data_dir / target).write_text("[]")
+        (data_dir / target).write_text("[]", encoding="utf-8")
     response = client.request(method, url(path), json=request_body(operation))
     assert response.status_code == status
     documented = operation["responses"][str(status)]
@@ -75,7 +75,7 @@ def test_documented_storage_failures_match_actual_format(data_dir, contract, met
     if failure == "missing":
         storage.unlink()
     else:
-        storage.write_text("{invalid")
+        storage.write_text("{invalid", encoding="utf-8")
     with TestClient(app, raise_server_exceptions=False) as http:
         response = http.request(method, url(path), json=request_body(operation))
     assert response.status_code == 500
@@ -87,18 +87,18 @@ def test_documented_storage_failures_match_actual_format(data_dir, contract, met
 
 def test_empty_product_object_is_a_storage_error(data_dir, contract):
     storage = data_dir / "products.json"
-    storage.write_text("{}")
+    storage.write_text("{}", encoding="utf-8")
     with TestClient(app, raise_server_exceptions=False) as client:
         response = client.get("/restaurants/1/menu")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
-    assert storage.read_text() == "{}"
+    assert storage.read_text(encoding="utf-8") == "{}"
 
 
 def test_menu_creation_rejects_invalid_existing_products(data_dir, contract):
     storage = data_dir / "products.json"
-    existing = {**json.loads(storage.read_text())[0], "price": "invalid"}
-    storage.write_text(json.dumps([existing]))
+    existing = {**json.loads(storage.read_text(encoding="utf-8"))[0], "price": "invalid"}
+    storage.write_text(json.dumps([existing]), encoding="utf-8")
     before = storage.read_bytes()
     operation = contract["paths"]["/restaurants/{restaurant_id}/menu"]["post"]
     with TestClient(app, raise_server_exceptions=False) as http:
@@ -142,9 +142,9 @@ def test_unknown_restaurant_error_matches_documentation(client, contract, method
 def test_wrong_owner_error_matches_documentation(client, data_dir, contract, method):
     path = "/restaurants/{restaurant_id}/menu/{product_id}"
     operation = contract["paths"][path][method]
-    products = json.loads((data_dir / "products.json").read_text())
+    products = json.loads((data_dir / "products.json").read_text(encoding="utf-8"))
     products[0]["restaurant_id"] = 2
-    (data_dir / "products.json").write_text(json.dumps(products))
+    (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
     before = (data_dir / "products.json").read_bytes()
     response = client.request(method, url(path), json=request_body(operation))
     assert response.status_code == 404

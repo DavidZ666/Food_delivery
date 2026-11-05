@@ -83,7 +83,7 @@ with TestClient(app) as http:
     result = subprocess.run(
         [sys.executable, "-c", script], cwd=ROOT,
         env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(data_dir)},
-        capture_output=True, text=True, check=True, timeout=15,
+        capture_output=True, text=True, check=True, timeout=15, encoding="utf-8",
     )
     assert json.loads(result.stdout) == [
         [200, [expected, menu_store[2]]],

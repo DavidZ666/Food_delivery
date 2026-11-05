@@ -267,6 +267,12 @@ Tests use temporary files created with pytest's `tmp_path`.
 Backend tests use `monkeypatch` to temporarily set
 `FOOD_DELIVERY_DATA_DIR`. Tests do not modify committed data.
 
+Test file and subprocess text I/O must pass `encoding="utf-8"`, matching
+storage, so results do not depend on the platform locale (#69). CI sets
+`PYTHONWARNDEFAULTENCODING=1` and pytest turns the resulting `EncodingWarning`
+into an error; run the same check locally with
+`PYTHONWARNDEFAULTENCODING=1 python -m pytest`.
+
 ## Continuous Integration
 
 Pull requests and pushes to `main` automatically install the project

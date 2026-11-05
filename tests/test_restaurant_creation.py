@@ -27,7 +27,7 @@ def payload():
 def test_create_preserves_records_and_products(client, data_dir, payload):
     original = restaurant_repo.list_all()
     products_path = data_dir / "products.json"
-    products_path.write_text('[{"product_id": 1, "restaurant_id": 101}]')
+    products_path.write_text('[{"product_id": 1, "restaurant_id": 101}]', encoding="utf-8")
     products = products_path.read_bytes()
     payload.update(description="Lunch", logo_url="https://example.com/logo.png",
                    hours={"monday": "09:00-18:00", "sunday": None})
@@ -48,7 +48,7 @@ def test_create_preserves_records_and_products(client, data_dir, payload):
 
 
 def test_empty_storage_starts_at_one(client, data_dir, payload):
-    (data_dir / "restaurants.json").write_text("[]")
+    (data_dir / "restaurants.json").write_text("[]", encoding="utf-8")
     response = client.post("/restaurants", json=payload)
     assert response.status_code == 201
     assert response.json() == {**payload, "id": 1, "description": None,
@@ -69,7 +69,7 @@ with TestClient(app) as client:
 '''
     output = subprocess.check_output(
         [sys.executable, "-c", script, json.dumps(payload)],
-        env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(data_dir)}, text=True,
+        env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(data_dir)}, text=True, encoding="utf-8",
     )
     before, status, after = json.loads(output)
     assert before[-1] == created
@@ -118,10 +118,10 @@ def test_trim_required_text(client, payload):
 ])
 def test_bad_storage_is_server_error(data_dir, payload, stored):
     path = data_dir / "restaurants.json"
-    path.write_text(stored)
+    path.write_text(stored, encoding="utf-8")
     with TestClient(app, raise_server_exceptions=False) as client:
         assert client.post("/restaurants", json=payload).status_code == 500
-    assert path.read_text() == stored
+    assert path.read_text(encoding="utf-8") == stored
 
 
 def test_missing_storage_is_not_reinitialized(data_dir, payload):

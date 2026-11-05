@@ -1,5 +1,20 @@
 # AI Use and Provenance
 
+## Locale-independent test text I/O (#69)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: explicit UTF-8 test file/subprocess I/O, `pytest.ini`, CI and README.
+- Purpose and influence: storage writes UTF-8 but tests read with the locale
+  default, so `Updated Café` decoded as mojibake on cp936/cp1252 Windows.
+  PEP 597 `EncodingWarning`s are now errors in CI to prevent recurrence.
+- TDD: the target test failed under cp936; with `PYTHONWARNDEFAULTENCODING=1`
+  the suite produced 7 failures and 426 errors, then passed after the fix.
+- Validation: 521 Python tests passed with one Windows skip in default, UTF-8
+  and strict-encoding modes; representative data unchanged.
+- References: [PEP 597](https://peps.python.org/pep-0597/),
+  [opt-in EncodingWarning](https://docs.python.org/3/library/io.html#io-encoding-warning).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
