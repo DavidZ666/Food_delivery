@@ -1,5 +1,23 @@
 # AI Use and Provenance
 
+## Frontend visual design (#111)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `frontend/css/styles.css`, shared page header and search hero in
+  the five pages, self-hosted Bricolage Grotesque (OFL) in `frontend/fonts/`,
+  `tests/test_frontend_design.py`, `tests/browser/layout.spec.mjs` and README.
+- Purpose and influence: replace placeholder M1 styling with one accessible
+  design system (tokens, light/dark schemes, shared navigation) for M2 views.
+  Existing IDs, labels, accessible names and JavaScript behavior are unchanged.
+- TDD: 29 Python and 5 browser design tests failed before implementation, then
+  passed; design was reviewed from light/dark desktop and mobile screenshots.
+- Validation: 553 Python tests (1 Windows skip), 30 frontend tests and 18
+  browser tests passed; representative data unchanged.
+- References: [WCAG 2.2 contrast minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html),
+  [prefers-color-scheme](https://developer.mozilla.org/docs/Web/CSS/@media/prefers-color-scheme),
+  [Bricolage Grotesque](https://github.com/ateliertriay/bricolage).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

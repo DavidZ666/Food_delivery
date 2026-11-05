@@ -59,6 +59,17 @@ It's plain HTML and JavaScript. The pages call the API with paths like
 `/restaurants`, and since they're on the same server we didn't need any CORS
 setup. All the restaurant data comes from the API, nothing is hard-coded.
 
+**Design (#111):** every page shares one header (ByteBites home link, primary
+navigation with the current page marked, and a skip link). Colors, type and
+spacing are CSS custom properties at the top of `frontend/css/styles.css`, with
+a dark scheme that follows the system setting. Text colors meet WCAG AA contrast
+in both schemes, keyboard focus is always visible, and reduced-motion settings
+are respected. The Bricolage Grotesque typeface is self-hosted in
+`frontend/fonts/` under the SIL Open Font License (`OFL.txt`). New views should
+reuse the tokens rather than add new colors. `tests/test_frontend_design.py` and
+`tests/browser/layout.spec.mjs` check page chrome, contrast, self-hosted assets
+and mobile layout from 320px.
+
 | Page | Path | API calls |
 |------|------|------|
 | Restaurant list | /app/ | `GET /restaurants`, name search and cuisine filtering |

@@ -7,13 +7,22 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header>
-    <nav><a id="back-link" href="./">Back to restaurants</a></nav>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html">Edit a restaurant</a>
+      </nav>
+    </div>
   </header>
-  <main>
+  <main id="main">
+    <p class="back"><a id="back-link" href="./">Back to restaurants</a></p>
     <h1 id="item-name">Menu item</h1>
     <p id="item-status" role="status" aria-live="polite"></p>
-    <img id="item-image" alt="" width="320" style="max-width: 100%; height: auto" hidden>
+    <img id="item-image" alt="" width="480" hidden>
     <dl id="item-details"></dl>
   </main>
   <script type="module" src="js/menu-item.js"></script>
