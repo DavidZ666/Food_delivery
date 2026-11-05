@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import subprocess
 import sys
+from threading import Event, Lock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -260,6 +261,46 @@ def test_concurrent_checkouts_create_one_order(accounts):
     assert sorted(results, key=str) == [1, *["empty"] * 7]
     assert len(order_repo.list_all()) == 1
     assert cart_of(ada)["items"] == []
+
+
+@pytest.mark.parametrize("change", ["deactivate", "address"])
+def test_queued_checkout_reloads_customer_after_waiting(http, accounts, data_dir, monkeypatch, change):
+    """Account changes completed while checkout waits must affect its snapshot."""
+    ada = accounts["ada"]
+    waiting = Event()
+    lock = Lock()
+
+    class ObservedLock:
+        def __enter__(self):
+            waiting.set()
+            return lock.__enter__()
+
+        def __exit__(self, *args):
+            return lock.__exit__(*args)
+
+    monkeypatch.setattr(checkout_service, "_checkout_lock", ObservedLock())
+    before = storage(data_dir)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        lock.acquire()
+        try:
+            pending = pool.submit(checkout, http, ada)
+            assert waiting.wait(timeout=5), "checkout did not reach the lock"
+            if change == "deactivate":
+                customer_service.deactivate_customer(ada["id"])
+            else:
+                customer_repo.update_by_id(ada["id"], {"delivery_address": {"city": "Vancouver"}})
+        finally:
+            lock.release()
+        response = pending.result(timeout=5)
+
+    if change == "deactivate":
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Forbidden"}
+        assert storage(data_dir) == before
+    else:
+        assert response.status_code == 201
+        assert response.json()["delivery_address"] == {**ADDRESS, "city": "Vancouver"}
+        assert order_repo.list_all() == [response.json()]
 
 
 def test_order_and_empty_cart_survive_restart(http, accounts, data_dir):

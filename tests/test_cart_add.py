@@ -210,6 +210,38 @@ def test_invalid_bodies_are_422(http, accounts, data_dir, body):
     assert carts(data_dir) == before
 
 
+@pytest.mark.parametrize("price,quantity", [(4.5, 10 ** 400), (1e308, 2)],
+                         ids=["integer-overflow", "float-overflow"])
+def test_unrepresentable_total_is_rejected_before_writing(http, accounts, data_dir, price, quantity):
+    products = [{**PRODUCTS[0], "price": price}, *PRODUCTS[1:]]
+    (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
+    ada = accounts["ada"]
+    before = carts(data_dir)
+    response = http.post(PATH.format(id=ada["id"]), json={"product_id": 1, "quantity": quantity},
+                         headers=bearer(ada))
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Cart total is too large"}
+    assert carts(data_dir) == before
+    read = http.get(f"/customers/{ada['id']}/cart", headers=bearer(ada))
+    assert read.status_code == 200 and read.json()["items"] == []
+
+
+@pytest.mark.parametrize("second_product", [1, 2])
+def test_aggregated_total_is_checked_inside_transaction(http, accounts, data_dir, second_product):
+    products = [{**product, "price": 1e308} for product in PRODUCTS]
+    (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
+    ada = accounts["ada"]
+    first = http.post(PATH.format(id=ada["id"]), json={"product_id": 1}, headers=bearer(ada))
+    assert first.status_code == 200 and first.json()["total"] == 1e308
+    before = carts(data_dir)
+    response = http.post(PATH.format(id=ada["id"]), json={"product_id": second_product},
+                         headers=bearer(ada))
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Cart total is too large"}
+    assert carts(data_dir) == before
+    assert http.get(f"/customers/{ada['id']}/cart", headers=bearer(ada)).json() == first.json()
+
+
 @pytest.mark.parametrize("authorization", [None, "Bearer unknown", "Basic abc"])
 def test_missing_or_invalid_credentials_are_401(http, accounts, data_dir, authorization):
     before = carts(data_dir)
@@ -268,8 +300,15 @@ with TestClient(app) as client:
 
 
 def test_openapi_documents_add_item(http):
-    operation = http.get("/openapi.json").json()["paths"]["/customers/{customer_id}/cart/items"]["post"]
+    document = http.get("/openapi.json").json()
+    operation = document["paths"]["/customers/{customer_id}/cart/items"]["post"]
     assert operation["security"] == [{"HTTPBearer": []}]
     assert {"200", "401", "403", "404", "409", "422", "500"} <= set(operation["responses"])
     assert operation["summary"] and operation["description"]
     assert operation["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith("/CartItemAdd")
+    variants = operation["responses"]["422"]["content"]["application/json"]["schema"]["anyOf"]
+    assert variants == [{"$ref": "#/components/schemas/HTTPValidationError"},
+                        {"$ref": "#/components/schemas/ErrorResponse"}]
+    schemas = document["components"]["schemas"]
+    assert schemas["HTTPValidationError"]["properties"]["detail"]["type"] == "array"
+    assert schemas["ErrorResponse"]["properties"]["detail"]["type"] == "string"
