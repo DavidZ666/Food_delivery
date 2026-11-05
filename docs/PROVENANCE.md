@@ -18,8 +18,25 @@
 - Change: reload the active account and delivery address after waiting for the
   checkout lock, so queued requests honor completed account changes.
 - Validation: both queued-checkout regressions failed before the fix; the full
-  Python suite passed (794 tests, one Windows skip) with the cart fixes included.
+  order-retrieval suite passed (825 tests, one Windows skip) with the cart fixes.
 - Reference (retrieved through Exa): [Python lock context managers](https://docs.python.org/3/library/threading.html#using-locks-conditions-and-semaphores-in-the-with-statement).
+
+## Order retrieval (#92)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/services/order_service.py`, order read routes in
+  `app/routes/orders.py`, `tests/test_order_retrieval.py`, API contract and README.
+- Purpose and influence: let customers list and read their stored order
+  snapshots (administrators any customer's) with ownership checks that do not
+  reveal other customers' order IDs.
+- TDD: all 31 new tests failed against an interface stub and missing routes,
+  then passed.
+- Validation: 817 Python tests passed with one Windows skip; order and checkout
+  tests passed 3/3 runs without UTF-8 mode; 30 frontend tests passed;
+  representative data unchanged.
+- References: [FastAPI path parameter validation](https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/),
+  [response models](https://fastapi.tiangolo.com/tutorial/response-model/).
 
 ## Checkout (#90)
 

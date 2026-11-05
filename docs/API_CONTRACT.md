@@ -283,13 +283,14 @@ rejected with 500 without overwriting the file.
 
 Schemas (`app/schemas/order.py`) and storage (`app/repositories/order_repo.py`,
 `data/orders.json`) are implemented. Checkout is implemented by #90 (see
-[checkout](#checkout-90)); order retrieval is planned for #92. All endpoints require the customer's own bearer token and an
-active account, like the cart endpoints.
+[checkout](#checkout-90)); order retrieval by #92 (see
+[order retrieval](#order-retrieval-92)). Checkout requires the customer's own bearer
+token and an active account, like the cart endpoints; order reads also allow administrators.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
 | POST `/customers/{customer_id}/checkout` (#90) | Bearer token | `Order` | 201, 401, 403, 404, 409, 422, 500 |
-| GET `/customers/{customer_id}/orders` (#92) | Bearer token | `Order[]` | 200, 401, 403, 422, 500 |
+| GET `/customers/{customer_id}/orders` (#92) | Bearer token | `Order[]` | 200, 401, 403, 404, 422, 500 |
 | GET `/customers/{customer_id}/orders/{order_id}` (#92) | Bearer token | `Order` | 200, 401, 403, 404, 422, 500 |
 
 | Situation | Result |
@@ -365,6 +366,29 @@ Failure safety and concurrency:
   customer and order is logged whenever the cart is kept.
 
 Verification: `python -m pytest tests/test_checkout.py -q`.
+
+### Order retrieval (#92)
+
+GET `/customers/{customer_id}/orders` returns that customer's stored orders in
+ascending `order_id` (200 `[]` when there are none). GET
+`/customers/{customer_id}/orders/{order_id}` returns one order. The issue's
+`/orders/{order_id}` wording maps to this customer-scoped path.
+
+- Access uses `require_account_access` (#75): an active account reads its own
+  orders; an `admin` may read any customer's orders, including a deactivated
+  customer's (orders are historical records). Reads never modify storage.
+- Order of checks: 401 credentials, 403 deactivated caller or another account
+  without the admin role, 422 non-positive or non-integer IDs, then 404.
+- 404 `{"detail":"Order not found"}` for an unknown order or an order belonging to
+  another customer under this path, so other customers' order IDs are not revealed.
+  404 `{"detail":"Customer not found"}` is reachable only by administrators.
+- Responses are the stored snapshots, never recalculated: later menu price, name
+  or availability changes, and deleted menu items, leave them unchanged. Extra
+  stored metadata is not returned. Malformed `orders.json` returns 500 unchanged.
+
+Verification: `python -m pytest tests/test_order_retrieval.py -q` covers history
+and single reads, ownership and admin access, 401/403/404/422, snapshot integrity
+after menu edits and deletion, restart persistence, storage errors and OpenAPI.
 
 ## Registration and sign-in (#73)
 
