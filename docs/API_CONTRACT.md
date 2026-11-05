@@ -235,7 +235,8 @@ file. Duplicate-email and unknown-ID writes leave the file unchanged.
 Schemas (`app/schemas/cart.py`) and storage (`app/repositories/cart_repo.py`,
 `data/carts.json`) are implemented. Create and read endpoints are implemented by
 #82 (see [active cart endpoints](#active-cart-endpoints-82)) and adding items by
-#84 (see [add to cart](#add-to-cart-84)); #86 (update, remove, clear) is planned. All require the cart
+#84 (see [add to cart](#add-to-cart-84)); updating, removing and clearing by #86 (see
+[update, remove and clear](#update-remove-and-clear-86)). All require the cart
 owner's bearer token and an active account.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -448,3 +449,28 @@ Verification: `python -m pytest tests/test_cart_add.py -q` covers valid adds,
 aggregation, totals rounding, unavailable, unknown and orphaned items,
 cross-restaurant conflicts, invalid bodies, missing carts, deactivation, 401 and
 cross-customer 403, malformed storage, concurrent adds, restart persistence and OpenAPI.
+
+### Update, remove and clear (#86)
+
+All three return 200 and the updated `CartRead`, with the same owner and
+active-customer checks as #82.
+
+- PATCH `/customers/{customer_id}/cart/items/{product_id}` with `CartItemUpdate`
+  (for example `{"quantity":3}`) sets the quantity; it does not add to it. The
+  stored name and unit price are kept and totals are recalculated.
+- DELETE `/customers/{customer_id}/cart/items/{product_id}` removes the item.
+- DELETE `/customers/{customer_id}/cart/items` removes every item. It keeps the
+  `cart_id` and succeeds on an already empty cart.
+- When the cart becomes empty, `restaurant_id` becomes null and `subtotal` and
+  `total` are 0, so items from any restaurant can be added next.
+- Errors after authentication: 422 for an invalid body or a nonpositive or
+  non-integer `product_id`, 404 `{"detail":"Cart not found"}` when the customer
+  has no cart, and 404 `{"detail":"Cart item not found"}` when the product is not
+  in the cart. Changes run inside the cart storage transaction against the
+  stored cart. Rejected requests and malformed `carts.json` (500) leave the file
+  unchanged.
+
+Verification: `python -m pytest tests/test_cart_edit.py -q` covers all three
+operations, invalid quantities and IDs, missing carts and items, 401, deactivated
+and cross-customer 403, malformed storage, concurrent updates, restart
+persistence and OpenAPI.

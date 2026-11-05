@@ -1,5 +1,23 @@
 # AI Use and Provenance
 
+## Update, remove and clear the cart (#86)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: cart repository transaction helper (`_change_items`) with
+  `set_quantity`, `remove_item` and `clear`; cart service and routes;
+  `tests/test_cart_edit.py`; API contract and README.
+- Purpose and influence: let customers change quantities, remove items and clear
+  the cart. Emptying the cart releases its restaurant binding. `add_item` now
+  shares the same transaction helper.
+- TDD: all 37 new tests failed before implementation (missing service functions
+  and routes), then passed.
+- Validation: 717 Python tests passed with one Windows skip. The cart test files
+  also pass without UTF-8 mode, all 30 frontend tests pass, and representative
+  data is unchanged.
+- References: [FastAPI path parameter validation](https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/),
+  [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
 ## Add to cart (#84)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

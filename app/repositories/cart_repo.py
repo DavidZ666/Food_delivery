@@ -82,31 +82,71 @@ class RestaurantConflictError(ValueError):
     pass
 
 
-def add_item(customer_id: int, restaurant_id: int, line: dict) -> dict:
-    """Add a priced line to the customer's cart in one transaction.
+class CartItemNotFoundError(LookupError):
+    pass
 
-    The single-restaurant rule and quantity aggregation are checked against the
-    stored cart inside the transaction, so concurrent adds cannot bypass them.
-    A repeated product adds its quantity and takes the current name and price.
+
+def _change_items(customer_id: int, change) -> dict:
+    """Apply change(record) -> (restaurant_id, items) to the stored cart in one transaction.
+
+    Rules run against the current stored cart, so concurrent requests cannot bypass them.
     """
     def apply(records):
         _validate_records(records)
         for index, record in enumerate(records):
             if record["customer_id"] != customer_id:
                 continue
-            if record["items"] and record["restaurant_id"] != restaurant_id:
-                raise RestaurantConflictError("Cart contains items from another restaurant")
-            items = [dict(item) for item in record["items"]]
-            existing = next((item for item in items if item["product_id"] == line["product_id"]), None)
-            if existing is None:
-                items.append(dict(line))
-            else:
-                existing.update(line, quantity=existing["quantity"] + line["quantity"])
+            restaurant_id, items = change(record, [dict(item) for item in record["items"]])
             validated = CartRecord.model_validate(
-                {**record, "restaurant_id": restaurant_id, "items": items}, strict=True,
+                {**record, "restaurant_id": restaurant_id if items else None, "items": items}, strict=True,
             ).model_dump()
             updated = {**record, "restaurant_id": validated["restaurant_id"], "items": validated["items"]}
             return [*records[:index], updated, *records[index + 1:]], updated
         raise CartNotFoundError("Cart not found")
 
     return update_json(_path(), apply)
+
+
+def _find(items: list[dict], product_id: int) -> dict:
+    item = next((item for item in items if item["product_id"] == product_id), None)
+    if item is None:
+        raise CartItemNotFoundError("Cart item not found")
+    return item
+
+
+def add_item(customer_id: int, restaurant_id: int, line: dict) -> dict:
+    """Add a priced line; a repeated product adds its quantity and takes the current name and price."""
+    def change(record, items):
+        if items and record["restaurant_id"] != restaurant_id:
+            raise RestaurantConflictError("Cart contains items from another restaurant")
+        existing = next((item for item in items if item["product_id"] == line["product_id"]), None)
+        if existing is None:
+            items.append(dict(line))
+        else:
+            existing.update(line, quantity=existing["quantity"] + line["quantity"])
+        return restaurant_id, items
+
+    return _change_items(customer_id, change)
+
+
+def set_quantity(customer_id: int, product_id: int, quantity: int) -> dict:
+    """Set a line's quantity, keeping its stored name and unit price."""
+    def change(record, items):
+        _find(items, product_id)["quantity"] = quantity
+        return record["restaurant_id"], items
+
+    return _change_items(customer_id, change)
+
+
+def remove_item(customer_id: int, product_id: int) -> dict:
+    """Remove a line; an emptied cart is no longer bound to a restaurant."""
+    def change(record, items):
+        removed = _find(items, product_id)
+        return record["restaurant_id"], [item for item in items if item is not removed]
+
+    return _change_items(customer_id, change)
+
+
+def clear(customer_id: int) -> dict:
+    """Empty the cart, keeping its cart_id."""
+    return _change_items(customer_id, lambda record, items: (None, []))

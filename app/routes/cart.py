@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Response
 
 from app.core.api_contract import STORAGE_FAILURE
 from app.core.auth import require_customer_owner
-from app.schemas.cart import CartItemAdd, CartRead
+from app.schemas.cart import CartItemAdd, CartItemUpdate, CartRead
 from app.schemas.error import ErrorResponse
 from app.services import cart_service, customer_service
 
@@ -12,6 +12,7 @@ from app.services import cart_service, customer_service
 router = APIRouter(tags=["Cart"])
 
 CustomerId = Annotated[int, Path(description="The signed-in customer's ID.", examples=[1])]
+ProductId = Annotated[int, Path(gt=0, description="Product ID of an item in the cart.", examples=[1])]
 CART_OWNER = [Depends(require_customer_owner)]
 CART_ERRORS = {
     401: {"model": ErrorResponse, "description": "Missing, invalid or expired bearer credentials."},
@@ -89,4 +90,61 @@ def add_cart_item(customer_id: CustomerId, item: CartItemAdd):
     except (cart_service.CartNotFoundError, cart_service.MenuItemNotFoundError,
             cart_service.MenuItemUnavailableError, cart_service.RestaurantConflictError,
             customer_service.CustomerNotFoundError, customer_service.InactiveCustomerError) as exc:
+        raise _http_error(exc) from exc
+
+
+EDIT_ERRORS = {
+    **CART_ERRORS,
+    404: {"model": ErrorResponse, "description": "Cart not found, or the cart has no item with this product ID."},
+}
+EDIT_FAILURES = (cart_service.CartNotFoundError, cart_service.CartItemNotFoundError,
+                 customer_service.CustomerNotFoundError, customer_service.InactiveCustomerError)
+
+
+@router.patch(
+    "/customers/{customer_id}/cart/items/{product_id}", response_model=CartRead, dependencies=CART_OWNER,
+    summary="Update a cart item quantity",
+    description=(
+        "Set the quantity (a JSON integer of at least 1) of an item already in the cart. "
+        "The stored name and unit price are kept; totals are recalculated by the backend. "
+        "Rejected requests leave the cart unchanged."
+    ),
+    responses=EDIT_ERRORS,
+)
+def update_cart_item(customer_id: CustomerId, product_id: ProductId, update: CartItemUpdate):
+    try:
+        return cart_service.update_item(customer_id, product_id, update)
+    except EDIT_FAILURES as exc:
+        raise _http_error(exc) from exc
+
+
+@router.delete(
+    "/customers/{customer_id}/cart/items/{product_id}", response_model=CartRead, dependencies=CART_OWNER,
+    summary="Remove an item from the cart",
+    description=(
+        "Remove an item and return the updated cart. Removing the last item empties the "
+        "cart and clears its restaurant, so items from any restaurant can be added next."
+    ),
+    responses=EDIT_ERRORS,
+)
+def remove_cart_item(customer_id: CustomerId, product_id: ProductId):
+    try:
+        return cart_service.remove_item(customer_id, product_id)
+    except EDIT_FAILURES as exc:
+        raise _http_error(exc) from exc
+
+
+@router.delete(
+    "/customers/{customer_id}/cart/items", response_model=CartRead, dependencies=CART_OWNER,
+    summary="Clear the cart",
+    description=(
+        "Remove every item, clear the restaurant and return the empty cart with zero totals. "
+        "The cart ID is kept; clearing an empty cart succeeds."
+    ),
+    responses={**CART_ERRORS, 404: {"model": ErrorResponse, "description": "Cart not found."}},
+)
+def clear_cart(customer_id: CustomerId):
+    try:
+        return cart_service.clear_cart(customer_id)
+    except EDIT_FAILURES as exc:
         raise _http_error(exc) from exc

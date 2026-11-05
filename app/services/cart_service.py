@@ -1,7 +1,7 @@
 """Active cart retrieval and initialization for active customers (#82)."""
 
 from app.repositories import cart_repo, product_repo
-from app.schemas.cart import CartItemAdd, CartRead
+from app.schemas.cart import CartItemAdd, CartItemUpdate, CartRead
 from app.services import customer_service, menu_service
 
 
@@ -69,3 +69,32 @@ def add_item(customer_id: int, item: CartItemAdd) -> CartRead:
     except cart_repo.CartNotFoundError:
         raise CartNotFoundError("Cart not found") from None
     return CartRead.model_validate(cart)
+
+
+class CartItemNotFoundError(LookupError):
+    pass
+
+
+def _edit(customer_id: int, operation, *args) -> CartRead:
+    customer_service.require_active_customer(customer_id)
+    try:
+        return CartRead.model_validate(operation(customer_id, *args))
+    except cart_repo.CartNotFoundError:
+        raise CartNotFoundError("Cart not found") from None
+    except cart_repo.CartItemNotFoundError:
+        raise CartItemNotFoundError("Cart item not found") from None
+
+
+def update_item(customer_id: int, product_id: int, update: CartItemUpdate) -> CartRead:
+    """Set an item's quantity; totals are recalculated from stored unit prices."""
+    return _edit(customer_id, cart_repo.set_quantity, product_id, update.quantity)
+
+
+def remove_item(customer_id: int, product_id: int) -> CartRead:
+    """Remove an item; removing the last one clears the restaurant binding."""
+    return _edit(customer_id, cart_repo.remove_item, product_id)
+
+
+def clear_cart(customer_id: int) -> CartRead:
+    """Empty the cart (idempotent), keeping its cart_id."""
+    return _edit(customer_id, cart_repo.clear)

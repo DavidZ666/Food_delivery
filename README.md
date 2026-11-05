@@ -214,7 +214,9 @@ Signed-in customers can read and update their profile and delivery address or
 deactivate their account ([profile contract](docs/API_CONTRACT.md#profile-and-deactivation-75)).
 Customers can create and retrieve their single active cart with backend-calculated
 totals ([cart endpoints](docs/API_CONTRACT.md#active-cart-endpoints-82)) and add
-available menu items from one restaurant ([add to cart](docs/API_CONTRACT.md#add-to-cart-84)).
+available menu items from one restaurant ([add to cart](docs/API_CONTRACT.md#add-to-cart-84)),
+then change quantities, remove items or clear the cart
+([update, remove and clear](docs/API_CONTRACT.md#update-remove-and-clear-86)).
 Applying guards to restaurant/menu writes is a follow-up task.
 See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
 for request examples, error codes and the credential contract.
