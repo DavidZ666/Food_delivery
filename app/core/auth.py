@@ -54,3 +54,13 @@ def require_customer_owner(
     if customer.id != customer_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     return customer
+
+
+def require_account_access(
+    customer_id: int,
+    account: Annotated[CustomerRead, Depends(get_current_customer)],
+) -> CustomerRead:
+    """Allow the account itself, or an administrator for any account ID."""
+    if account.role != "admin" and account.id != customer_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return account

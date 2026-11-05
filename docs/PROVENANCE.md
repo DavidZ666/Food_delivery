@@ -1,5 +1,20 @@
 # AI Use and Provenance
 
+## Customer profile and deactivation (#75)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: profile service functions and routes, `require_account_access`,
+  `tests/test_customer_profile.py`, API contract and README.
+- Purpose and influence: let accounts read, update and deactivate themselves
+  (administrators any account) and provide shared active-customer validation.
+- TDD: 42 new tests failed before implementation, then passed; one check-order
+  test was added afterwards to lock the documented 401/403/422 order.
+- Validation: 609 Python tests passed with one Windows skip; representative
+  data unchanged.
+- References: [FastAPI path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/),
+  [Pydantic exclude_unset](https://docs.pydantic.dev/latest/concepts/serialization/#exclude_unset).
+
 ## Authentication and role guards (#77)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
