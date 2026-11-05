@@ -1,5 +1,21 @@
 # AI Use and Provenance
 
+## Add to cart (#84)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `cart_repo.add_item`, `cart_service.add_item`, POST
+  `/customers/{customer_id}/cart/items`, `tests/test_cart_add.py`, API contract and README.
+- Purpose and influence: let active customers add available menu items with
+  menu-sourced prices, quantity aggregation and the single-restaurant rule
+  enforced inside the storage transaction.
+- TDD: 35 new tests failed against interface stubs (`NotImplementedError`, missing
+  route), then passed.
+- Validation: 680 Python tests passed with one Windows skip; cart tests also
+  passed without UTF-8 mode; 30 frontend tests passed; representative data unchanged.
+- References: [FastAPI request body](https://fastapi.tiangolo.com/tutorial/body/),
+  [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
 ## Active cart endpoints (#82)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

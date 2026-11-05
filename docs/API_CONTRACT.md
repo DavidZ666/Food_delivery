@@ -234,8 +234,8 @@ file. Duplicate-email and unknown-ID writes leave the file unchanged.
 
 Schemas (`app/schemas/cart.py`) and storage (`app/repositories/cart_repo.py`,
 `data/carts.json`) are implemented. Create and read endpoints are implemented by
-#82 (see [active cart endpoints](#active-cart-endpoints-82)); #84 (add item) and
-#86 (update, remove, clear) are planned. All require the cart
+#82 (see [active cart endpoints](#active-cart-endpoints-82)) and adding items by
+#84 (see [add to cart](#add-to-cart-84)); #86 (update, remove, clear) is planned. All require the cart
 owner's bearer token and an active account.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -420,3 +420,31 @@ Verification: `python -m pytest tests/test_cart_api.py -q`. Isolated service and
 API tests cover empty and existing carts, totals, idempotent creation including
 a concurrent create, 401/403/422/500 without storage changes, deactivation,
 restart persistence in a fresh process and OpenAPI security.
+
+### Add to cart (#84)
+
+POST `/customers/{customer_id}/cart/items` with `CartItemAdd` (for example
+`{"product_id":1,"quantity":2}`) returns 200 and the updated `CartRead`. It uses
+the same owner and active-customer checks as #82.
+
+- The cart must already exist (POST `/customers/{customer_id}/cart`); otherwise
+  404 `{"detail":"Cart not found"}`.
+- The product is looked up by ID and confirmed through `menu_service.get_menu_item`.
+  Unknown products, and products whose restaurant no longer exists, return 404
+  `{"detail":"Menu item not found"}`. `is_available` must be `true`, otherwise 409
+  `{"detail":"Menu item is unavailable"}`.
+- Name, `unit_price` and `restaurant_id` come from the stored menu item. The first
+  item sets the cart's `restaurant_id`; an item from another restaurant while the
+  cart has items returns 409 `{"detail":"Cart contains items from another restaurant"}`.
+- Adding a product already in the cart adds to its quantity and refreshes its name
+  and unit price from the menu. Quantities have no upper bound beyond the schema.
+- Check order after authentication: 422 body, 404 cart, 404 menu item, 409
+  unavailable, 409 other restaurant. The restaurant rule and quantity aggregation
+  run inside the cart storage transaction against the stored cart, so concurrent
+  adds cannot mix restaurants or lose quantity. Rejected requests and malformed
+  `carts.json` or `products.json` (500) leave `carts.json` unchanged.
+
+Verification: `python -m pytest tests/test_cart_add.py -q` covers valid adds,
+aggregation, totals rounding, unavailable, unknown and orphaned items,
+cross-restaurant conflicts, invalid bodies, missing carts, deactivation, 401 and
+cross-customer 403, malformed storage, concurrent adds, restart persistence and OpenAPI.
