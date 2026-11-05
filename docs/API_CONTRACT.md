@@ -233,8 +233,9 @@ file. Duplicate-email and unknown-ID writes leave the file unchanged.
 # M2 cart contract (#81)
 
 Schemas (`app/schemas/cart.py`) and storage (`app/repositories/cart_repo.py`,
-`data/carts.json`) are implemented. Endpoints are implemented by #82 (create,
-read), #84 (add item) and #86 (update, remove, clear). All require the cart
+`data/carts.json`) are implemented. Create and read endpoints are implemented by
+#82 (see [active cart endpoints](#active-cart-endpoints-82)); #84 (add item) and
+#86 (update, remove, clear) are planned. All require the cart
 owner's bearer token and an active account.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -394,3 +395,28 @@ Verification: `python -m pytest tests/test_customer_profile.py -q`. Isolated tes
 cover profile reads, partial and address updates, 401/403/404/422 without storage
 changes, deactivation, restart persistence in a fresh process, active-customer
 validation and OpenAPI security.
+
+### Active cart endpoints (#82)
+
+`GET` and `POST /customers/{customer_id}/cart` (`app/routes/cart.py`,
+`app/services/cart_service.py`) depend on `require_customer_owner`: only the
+active `customer` whose ID is in the path may use the cart. Administrators and
+restaurant owners receive 403, including for their own IDs, as the contract
+above says carts require the cart owner's token.
+
+- POST creates an empty cart and returns 201, or returns the existing cart
+  unchanged with 200. It never creates a second active cart; a concurrent create
+  falls back to the stored cart.
+- GET returns 200 with the cart, or 404 `{"detail":"Cart not found"}` when the
+  customer has none.
+- Both return `CartRead` with backend-calculated `line_total`, `subtotal` and
+  `total`. An empty cart is `{"cart_id":1,"customer_id":1,"restaurant_id":null,"items":[],"subtotal":0.0,"total":0.0}`.
+- Check order: 401 credentials, 403 inactive account or non-customer role,
+  422 invalid ID, 403 another customer's ID, then cart storage. The service also calls
+  `customer_service.require_active_customer`. Rejected requests and malformed
+  `carts.json` (500) leave storage unchanged.
+
+Verification: `python -m pytest tests/test_cart_api.py -q`. Isolated service and
+API tests cover empty and existing carts, totals, idempotent creation including
+a concurrent create, 401/403/422/500 without storage changes, deactivation,
+restart persistence in a fresh process and OpenAPI security.
