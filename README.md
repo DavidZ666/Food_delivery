@@ -212,6 +212,8 @@ in again. Reusable authentication, role and customer-ownership guards are availa
 in `app/core/auth.py`; see [the guard contract](docs/API_CONTRACT.md#authentication-and-authorization-guards-77).
 Signed-in customers can read and update their profile and delivery address or
 deactivate their account ([profile contract](docs/API_CONTRACT.md#profile-and-deactivation-75)).
+Customers can create and retrieve their single active cart with backend-calculated
+totals ([cart endpoints](docs/API_CONTRACT.md#active-cart-endpoints-82)).
 Applying guards to restaurant/menu writes is a follow-up task.
 See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
 for request examples, error codes and the credential contract.

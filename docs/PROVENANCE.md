@@ -1,5 +1,20 @@
 # AI Use and Provenance
 
+## Active cart endpoints (#82)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/services/cart_service.py`, `app/routes/cart.py`, router
+  registration, `tests/test_cart_api.py`, API contract and README.
+- Purpose and influence: let an active customer create or retrieve their single
+  active cart with backend-calculated totals, guarded by customer ownership.
+- TDD: all 36 new tests failed against an interface stub and missing routes,
+  then passed after implementation.
+- Validation: 645 Python tests passed with one Windows skip; 30 frontend tests
+  passed; representative data unchanged.
+- References: [FastAPI response status code](https://fastapi.tiangolo.com/advanced/response-change-status-code/),
+  [path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/).
+
 ## Customer profile and deactivation (#75)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
