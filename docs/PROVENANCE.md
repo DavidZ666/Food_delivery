@@ -1,5 +1,22 @@
 # AI Use and Provenance
 
+## Order schemas and repository (#89)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/schemas/order.py`, `app/repositories/order_repo.py`,
+  `data/orders.json`, `tests/test_order_repo.py`, API contract and README.
+- Purpose and influence: define the order snapshot and checkout/order contract
+  for #90 and #92, and persist append-only orders with stable IDs and
+  malformed-storage rejection.
+- TDD: all 47 new tests failed against interface stubs, then passed.
+- Validation: 568 Python tests passed with one Windows skip (order tests also
+  without UTF-8 mode); 30 frontend tests passed; representative data unchanged
+  apart from the new empty `data/orders.json`.
+- References: [Pydantic validators](https://docs.pydantic.dev/latest/concepts/validators/),
+  [strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/),
+  [datetime.fromisoformat](https://docs.python.org/3/library/datetime.html#datetime.datetime.fromisoformat).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
