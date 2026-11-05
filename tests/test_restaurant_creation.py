@@ -64,7 +64,11 @@ from fastapi.testclient import TestClient
 from app.main import app
 with TestClient(app) as client:
     before = client.get("/restaurants").json()
-    response = client.post("/restaurants", json=json.loads(sys.argv[1]))
+    # Sessions are in memory, so the fresh process signs in again.
+    token = client.post("/auth/login", json={
+        "email": "manager@example.com", "password": "manager-test-password"}).json()["access_token"]
+    response = client.post("/restaurants", json=json.loads(sys.argv[1]),
+                           headers={"Authorization": f"Bearer {token}"})
     print(json.dumps([before, response.status_code, response.json()]))
 '''
     output = subprocess.check_output(
@@ -116,19 +120,19 @@ def test_trim_required_text(client, payload):
 @pytest.mark.parametrize("stored", [
     "{bad json", "{}", '[{"id": 1}]',
 ])
-def test_bad_storage_is_server_error(data_dir, payload, stored):
+def test_bad_storage_is_server_error(manager_headers, data_dir, payload, stored):
     path = data_dir / "restaurants.json"
     path.write_text(stored)
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as client:
         assert client.post("/restaurants", json=payload).status_code == 500
     assert path.read_text() == stored
 
 
-def test_missing_storage_is_not_reinitialized(data_dir, payload):
+def test_missing_storage_is_not_reinitialized(manager_headers, data_dir, payload):
     path = data_dir / "restaurants.json"
     missing = data_dir / "missing.json"
     path.rename(missing)
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as client:
         assert client.post("/restaurants", json=payload).status_code == 500
     assert not path.exists()
 
@@ -153,14 +157,14 @@ def test_service_delegates_and_propagates_failure(payload, monkeypatch):
         restaurant_service.create_restaurant(request)
 
 
-def test_write_failure_is_server_error(data_dir, payload, monkeypatch):
+def test_write_failure_is_server_error(manager_headers, data_dir, payload, monkeypatch):
     original = (data_dir / "restaurants.json").read_bytes()
 
     def fail(*args):
         raise OSError("replacement failed")
 
     monkeypatch.setattr(json_store.os, "replace", fail)
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as client:
         assert client.post("/restaurants", json=payload).status_code == 500
     assert (data_dir / "restaurants.json").read_bytes() == original
     assert not list(data_dir.glob("*.tmp"))

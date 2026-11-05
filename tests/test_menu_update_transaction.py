@@ -25,7 +25,7 @@ def products(data_dir):
     return records
 
 
-def test_concurrent_partial_updates_and_creation_preserve_every_change(data_dir, products):
+def test_concurrent_partial_updates_and_creation_preserve_every_change(manager_headers, data_dir, products):
     restaurants_before = (data_dir / "restaurants.json").read_bytes()
     changes = {"name": "New soup", "description": "Seasonal", "price": 6.75,
                "category": "Specials", "image": "soup.png", "is_available": False}
@@ -38,7 +38,7 @@ def test_concurrent_partial_updates_and_creation_preserve_every_change(data_dir,
 
     def request(job):
         method, path, body = job
-        with TestClient(app) as http:
+        with TestClient(app, headers=manager_headers) as http:
             start.wait(timeout=10)
             response = http.request(method, path, json=body)
             assert response.status_code == (201 if method == "post" else 200)
@@ -60,7 +60,7 @@ def test_concurrent_partial_updates_and_creation_preserve_every_change(data_dir,
 
 
 @pytest.mark.parametrize("corruption", ["duplicate-id", "invalid-price", "invalid-collection"])
-def test_invalid_storage_is_not_rewritten_by_updates(data_dir, products, corruption):
+def test_invalid_storage_is_not_rewritten_by_updates(manager_headers, data_dir, products, corruption):
     if corruption == "duplicate-id":
         products[0]["product_id"] = 3
     elif corruption == "invalid-price":
@@ -70,7 +70,7 @@ def test_invalid_storage_is_not_rewritten_by_updates(data_dir, products, corrupt
     path = data_dir / "products.json"
     path.write_text(json.dumps(products), encoding="utf-8")
     before = path.read_bytes()
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         assert http.patch("/restaurants/101/menu/8", json={"price": 6}).status_code == 500
     assert path.read_bytes() == before
     assert not list(data_dir.glob("*.tmp"))

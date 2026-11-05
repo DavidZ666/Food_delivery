@@ -171,13 +171,18 @@ test("real storage failures retain restaurant details and allow menu retry", asy
 });
 
 test("unavailable items stay visible; API-created and updated items survive restart", async ({ page, request, app }) => {
-  const response = await request.post(`${app.url}/restaurants/1/menu`, { data: {
+  const headers = { Authorization: `Bearer ${await app.signIn()}` };
+  const unauthorized = await request.post(`${app.url}/restaurants/1/menu`, { data: {
+    name: "Rejected Soup", category: "Soup", price: 4.25,
+  } });
+  expect(unauthorized.status()).toBe(401);
+  const response = await request.post(`${app.url}/restaurants/1/menu`, { headers, data: {
     name: "Browser Test Soup", category: "Soup", price: 4.25, description: "Fresh soup",
   } });
   expect(response.status()).toBe(201);
   const item = await response.json();
   const updated = await request.patch(`${app.url}/restaurants/1/menu/${item.product_id}`,
-    { data: { is_available: false, price: 5.5 } });
+    { headers, data: { is_available: false, price: 5.5 } });
   expect(updated.status()).toBe(200);
   await app.restart();
   await page.goto(`${app.url}/app/restaurant.html?id=1`);
@@ -197,6 +202,11 @@ test("UI restaurant creation and editing persist across an actual server restart
     "location.province": "BC", "location.postal_code": "V1V 1V1" })) {
     await page.locator(`[name="${name}"]`).fill(value);
   }
+  await page.getByRole("button", { name: "Create restaurant", exact: true }).click();
+  await expect(page.locator("#form-status")).toHaveText("Sign in as a restaurant owner or admin to make changes.");
+  // No sign-in UI until #95: store the session token the way it will.
+  const token = await app.signIn();
+  await page.evaluate((value) => sessionStorage.setItem("accessToken", value), token);
   await page.getByRole("button", { name: "Create restaurant", exact: true }).click();
   await expect(page.locator("#form-status")).toContainText('Created "Browser Café"');
   await page.getByRole("link", { name: "Edit this restaurant" }).click();

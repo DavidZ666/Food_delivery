@@ -158,7 +158,7 @@ def test_service_reads_repository_without_mutation(monkeypatch):
     "failure",
     ["missing", "invalid_json"],
 )
-def test_storage_failure_is_not_an_empty_result(
+def test_storage_failure_is_not_an_empty_result(manager_headers,
     data_dir,
     failure,
 ):
@@ -171,7 +171,7 @@ def test_storage_failure_is_not_an_empty_result(
 
     with TestClient(
         app,
-        raise_server_exceptions=False,
+        raise_server_exceptions=False, headers=manager_headers,
     ) as client:
         response = client.get(
             "/restaurants",

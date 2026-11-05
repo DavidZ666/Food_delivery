@@ -210,7 +210,9 @@ customer account; sign-in returns an opaque bearer token valid for one hour.
 Sessions are in memory and end on server restart; accounts persist and can sign
 in again. Reusable authentication, role and customer-ownership guards are available
 in `app/core/auth.py`; see [the guard contract](docs/API_CONTRACT.md#authentication-and-authorization-guards-77).
-Profile routes and applying guards to restaurant/menu writes are follow-up tasks.
+Restaurant and menu writes require a restaurant owner or admin token; browsing
+stays public ([write authorization](docs/API_CONTRACT.md#restaurant-and-menu-write-authorization-78)).
+Profile routes are a follow-up task.
 See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
 for request examples, error codes and the credential contract.
 
