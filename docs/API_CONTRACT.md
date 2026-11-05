@@ -282,8 +282,8 @@ rejected with 500 without overwriting the file.
 # M2 order contract (#89)
 
 Schemas (`app/schemas/order.py`) and storage (`app/repositories/order_repo.py`,
-`data/orders.json`) are implemented. Checkout is planned for #90 and order
-retrieval for #92. All endpoints require the customer's own bearer token and an
+`data/orders.json`) are implemented. Checkout is implemented by #90 (see
+[checkout](#checkout-90)); order retrieval is planned for #92. All endpoints require the customer's own bearer token and an
 active account, like the cart endpoints.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -334,6 +334,37 @@ file is not recreated.
 Verification: `python -m pytest tests/test_order_repo.py -q`. Explicit snapshot
 fixtures cover schema validation, total consistency, timestamps, ID allocation
 across a fresh process, concurrent creation, lookups and malformed storage.
+
+### Checkout (#90)
+
+POST `/customers/{customer_id}/checkout` (no body) returns 201 with the saved
+`Order`. Access matches the cart routes: 401 for missing or invalid credentials,
+403 for a deactivated account, another customer or a non-customer role.
+
+1. The cart must exist (404 `Cart not found`) and have items (409 `Cart is empty`).
+2. Each item is re-read from the current menu. It must still exist, belong to the
+   cart's restaurant, be available, and its restaurant must exist; otherwise 409
+   `Menu item is unavailable`. Current names and prices are used, so a price
+   change is not an error.
+3. The order snapshot (status `placed`, current UTC `created_at`, the customer's
+   current `delivery_address`, stored totals) is saved first.
+4. The cart is then emptied (`restaurant_id: null`, same `cart_id`), but only if
+   its items still equal the snapshot.
+
+Failure safety and concurrency:
+
+- Any failure before the order is saved (including order storage errors, 500)
+  leaves the cart and `orders.json` unchanged.
+- Checkouts run one at a time per process, so concurrent checkouts of the same
+  cart create one order; the others see an empty cart (409).
+- If the cart changed during checkout (for example a concurrent add), the order
+  keeps the snapshot and the cart is left as it is, so the change is not lost.
+- If clearing the cart fails after the order is saved, checkout still returns
+  201 with the order and the cart keeps its items; retrying would create a
+  second order, so clients should treat 201 as final. A warning naming the
+  customer and order is logged whenever the cart is kept.
+
+Verification: `python -m pytest tests/test_checkout.py -q`.
 
 ## Registration and sign-in (#73)
 

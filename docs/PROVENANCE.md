@@ -1,5 +1,22 @@
 # AI Use and Provenance
 
+## Checkout (#90)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/services/checkout_service.py`, `app/routes/orders.py`,
+  `cart_repo.clear_if_unchanged`, `tests/test_checkout.py`, API contract and README.
+- Purpose and influence: revalidate the cart against the current menu, save a
+  placed order snapshot, then clear the cart only if unchanged. Checkouts are
+  serialized per process so one cart cannot become two orders.
+- TDD: all 22 new tests failed against an interface stub, then passed; review
+  added a failing check that a kept cart logs a warning, then the warning.
+- Validation: 786 Python tests passed with one Windows skip; checkout and cart
+  tests passed 5/5 runs without UTF-8 mode; 30 frontend tests passed;
+  representative data unchanged.
+- References: [threading.Lock](https://docs.python.org/3/library/threading.html#lock-objects),
+  [FastAPI response status codes](https://fastapi.tiangolo.com/tutorial/response-status-code/).
+
 ## Update, remove and clear the cart (#86)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

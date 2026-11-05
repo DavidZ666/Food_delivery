@@ -150,3 +150,21 @@ def remove_item(customer_id: int, product_id: int) -> dict:
 def clear(customer_id: int) -> dict:
     """Empty the cart, keeping its cart_id."""
     return _change_items(customer_id, lambda record, items: (None, []))
+
+
+class CartChangedError(RuntimeError):
+    pass
+
+
+def clear_if_unchanged(customer_id: int, expected_items: list[dict]) -> dict:
+    """Empty the cart only if its items still equal expected_items (checkout, #90).
+
+    A cart changed since the checkout snapshot raises CartChangedError and is left
+    as it is, so a concurrent change is not silently discarded.
+    """
+    def change(record, items):
+        if items != expected_items:
+            raise CartChangedError("Cart changed during checkout")
+        return None, []
+
+    return _change_items(customer_id, change)

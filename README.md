@@ -204,7 +204,9 @@ Menu requests also require `products.json` in the same directory.
 Customer accounts are stored in `customers.json` (initially `[]`).
 Carts are stored in `carts.json` (initially `[]`).
 Orders are stored in `orders.json` (initially `[]`) as append-only snapshots;
-see [the order contract](docs/API_CONTRACT.md#m2-order-contract-89).
+see [the order contract](docs/API_CONTRACT.md#m2-order-contract-89). Customers check
+out their cart with `POST /customers/{customer_id}/checkout`, which saves the
+order at current menu prices and then empties the cart ([checkout](docs/API_CONTRACT.md#checkout-90)).
 
 Customer registration (`POST /customers`) and sign-in (`POST /auth/login`) are
 available. Registration stores a salted password hash and returns an active
