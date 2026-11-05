@@ -1,5 +1,35 @@
 # AI Use and Provenance
 
+## Cart numeric range review (#115)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: cart repository, service and route; add-to-cart regression tests;
+  API contract.
+- Purpose: reject unrepresentable line totals and subtotals inside the storage
+  transaction, so large quantities cannot persist a broken cart.
+- Validation: four regressions failed before the fix; 684 Python tests passed,
+  with one existing Windows skip, after the fix.
+- Follow-up: the targeted OpenAPI assertion passes; 422 documents both request
+  validation details and the overflow error, with both schema references resolved.
+- References (retrieved with Exa): [Python finite-number checks](https://docs.python.org/3/library/math.html#math.isfinite),
+  [JSON numeric serialization](https://docs.python.org/3/library/json.html#json.dump).
+
+## Add to cart (#84)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `cart_repo.add_item`, `cart_service.add_item`, POST
+  `/customers/{customer_id}/cart/items`, `tests/test_cart_add.py`, API contract and README.
+- Purpose and influence: let active customers add available menu items with
+  menu-sourced prices, quantity aggregation and the single-restaurant rule
+  enforced inside the storage transaction.
+- TDD: 35 new tests failed against interface stubs (`NotImplementedError`, missing
+  route), then passed.
+- Validation: 680 Python tests passed with one Windows skip; cart tests also
+  passed without UTF-8 mode; 30 frontend tests passed; representative data unchanged.
+- References: [FastAPI request body](https://fastapi.tiangolo.com/tutorial/body/),
+  [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
 ## Active cart endpoints (#82)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
