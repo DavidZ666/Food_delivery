@@ -15,14 +15,14 @@ Default origin: `http://127.0.0.1:8000`. Requests with bodies use
 |---|---|---|---|
 | GET `/health` | None | `HealthResponse` | 200 |
 | GET `/restaurants` | Optional `name`, `cuisine` query strings | `RestaurantRead[]` | 200, 422 (framework validation), 500 |
-| POST `/restaurants` | `RestaurantCreate` | `RestaurantRead` | 201, 422, 500 |
+| POST `/restaurants` | Bearer token, `RestaurantCreate` | `RestaurantRead` | 201, 401, 403, 422, 500 |
 | GET `/restaurants/{restaurant_id}` | Integer restaurant ID | `RestaurantRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}` | Integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}` | Bearer token, integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu` | Integer restaurant ID | `MenuItemRead[]` | 200, 404, 422, 500 |
-| POST `/restaurants/{restaurant_id}/menu` | Integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 404, 422, 500 |
+| POST `/restaurants/{restaurant_id}/menu` | Bearer token, integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | `MenuItemRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 404, 422, 500 |
-| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | No body | 204, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 401, 403, 404, 422, 500 |
+| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer restaurant and product IDs | No body | 204, 401, 403, 404, 422, 500 |
 
 `/` redirects to `/app/` (307). Static frontend pages under `/app/` and framework
 documentation routes are not business API operations and are excluded from the
@@ -30,7 +30,9 @@ generated business-operation schema. There is no restaurant DELETE endpoint.
 
 `/health` returns `{"status":"ok"}` with a literal `ok` response model. It is a
 liveness check, not a storage-readiness check; it still returns 200 if JSON files
-are unavailable. Authentication and authorization are not implemented in M1.
+are unavailable. Restaurant and menu writes require a `restaurant_owner` or
+`admin` bearer token (see [management authorization](#restaurant-and-menu-write-authorization-78));
+browsing stays public.
 
 ## Search and reads
 
@@ -187,8 +189,8 @@ All writes target temporary files; representative `data/` files stay unchanged.
 Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
 (`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
 Registration and sign-in endpoints are implemented by #73. Profile and
-deactivation endpoints remain planned for #75; bearer authentication guards and
-role enforcement remain planned for #77/#78. The table includes these planned
+deactivation endpoints remain planned for #75; bearer authentication guards (#77)
+and restaurant/menu role enforcement (#78) are implemented. The table includes these planned
 operations; only POST `/customers` and POST `/auth/login` are implemented here.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -371,3 +373,25 @@ Implementation references (retrieved through Exa):
 [FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
 [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
 [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+### Restaurant and menu write authorization (#78)
+
+POST/PATCH `/restaurants` and POST/PATCH/DELETE `/restaurants/{restaurant_id}/menu...`
+depend on `require_management` (`require_roles("restaurant_owner", "admin")`).
+All GET browsing routes stay public. Writes without valid bearer credentials
+return 401 `{"detail":"Invalid credentials"}` with `WWW-Authenticate: Bearer`;
+customers and inactive accounts receive 403 `{"detail":"Forbidden"}`.
+Authentication is checked before request validation, so an unauthenticated
+invalid body returns 401, not 422. Rejected requests do not modify storage.
+OpenAPI declares HTTP bearer security and 401/403 examples on the five writes only.
+Restaurants have no stored owner yet, so any active restaurant owner may manage
+any restaurant.
+
+The frontend sends `sessionStorage["accessToken"]` as a bearer token when
+present and shows "Sign in as a restaurant owner or admin to make changes." on
+401/403. The sign-in UI that stores the token is #95.
+
+Verification: `python -m pytest tests/test_management_auth.py -q` covers 401/403
+on every write, owner/admin success, public reads and OpenAPI security; existing
+write tests use a seeded restaurant owner. Browser tests sign in through
+`/auth/login` and cover a rejected write before an authorized one.

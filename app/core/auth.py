@@ -46,6 +46,9 @@ def require_roles(*roles: Role) -> Callable[..., CustomerRead]:
     return check_role
 
 
+require_management = require_roles("restaurant_owner", "admin")
+
+
 def require_customer_owner(
     customer_id: int,
     customer: Annotated[CustomerRead, Depends(require_roles("customer"))],

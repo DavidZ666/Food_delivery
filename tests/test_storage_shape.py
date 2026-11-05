@@ -31,12 +31,12 @@ def test_repository_rejects_non_array_storage(data_dir, stored, filename, reposi
 @pytest.mark.parametrize("filename,paths", [
     ("restaurants.json", RESTAURANT_READS), ("products.json", MENU_READS),
 ])
-def test_invalid_storage_is_500_for_list_filter_and_detail(data_dir, stored, filename, paths):
+def test_invalid_storage_is_500_for_list_filter_and_detail(manager_headers, data_dir, stored, filename, paths):
     (data_dir / "products.json").write_text("[]")
     (data_dir / filename).write_text(stored)
     files = [data_dir / name for name in ("restaurants.json", "products.json")]
     before = [path.read_bytes() for path in files]
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as client:
         for path in paths:
             response = client.get(path)
             assert response.status_code == 500, (path, response.text)

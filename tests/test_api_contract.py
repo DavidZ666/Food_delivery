@@ -69,14 +69,14 @@ def test_documented_success_examples_execute(client, data_dir, contract, method,
     if filename == "restaurants.json" or "/menu" in entry[1]
 ])
 @pytest.mark.parametrize("failure", ["missing", "malformed"])
-def test_documented_storage_failures_match_actual_format(data_dir, contract, method, path, status, filename, failure):
+def test_documented_storage_failures_match_actual_format(manager_headers, data_dir, contract, method, path, status, filename, failure):
     operation = contract["paths"][path][method]
     storage = data_dir / filename
     if failure == "missing":
         storage.unlink()
     else:
         storage.write_text("{invalid")
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         response = http.request(method, url(path), json=request_body(operation))
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("text/plain")
@@ -85,23 +85,23 @@ def test_documented_storage_failures_match_actual_format(data_dir, contract, met
     assert response.text == media["example"]
 
 
-def test_empty_product_object_is_a_storage_error(data_dir, contract):
+def test_empty_product_object_is_a_storage_error(manager_headers, data_dir, contract):
     storage = data_dir / "products.json"
     storage.write_text("{}")
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as client:
         response = client.get("/restaurants/1/menu")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
     assert storage.read_text() == "{}"
 
 
-def test_menu_creation_rejects_invalid_existing_products(data_dir, contract):
+def test_menu_creation_rejects_invalid_existing_products(manager_headers, data_dir, contract):
     storage = data_dir / "products.json"
     existing = {**json.loads(storage.read_text())[0], "price": "invalid"}
     storage.write_text(json.dumps([existing]))
     before = storage.read_bytes()
     operation = contract["paths"]["/restaurants/{restaurant_id}/menu"]["post"]
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         response = http.post("/restaurants/1/menu", json=request_body(operation))
     assert response.status_code == 500
     assert storage.read_bytes() == before

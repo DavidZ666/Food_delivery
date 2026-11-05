@@ -101,3 +101,38 @@ for (const status of [201, 422, 500]) {
     });
   });
 }
+
+function storeToken(token) {
+  globalThis.sessionStorage = { getItem: (key) => (key === "accessToken" ? token : null) };
+}
+
+test("a stored session token is sent as a bearer credential", async (t) => {
+  t.after(() => delete globalThis.sessionStorage);
+  storeToken("abc123");
+  const calls = respondWith(200, "{}");
+  await apiRequest("/restaurants/1", { method: "PATCH", body: {} });
+  assert.equal(calls[0].options.headers.Authorization, "Bearer abc123");
+});
+
+test("no Authorization header without a stored token or storage", async (t) => {
+  t.after(() => delete globalThis.sessionStorage);
+  const calls = respondWith(200, "[]");
+  await apiRequest("/restaurants");
+  storeToken(null);
+  await apiRequest("/restaurants");
+  globalThis.sessionStorage = { getItem: () => { throw new Error("blocked"); } };
+  await apiRequest("/restaurants");
+  for (const call of calls) assert.equal(call.options.headers.Authorization, undefined);
+});
+
+for (const [status, detail] of [[401, "Invalid credentials"], [403, "Forbidden"]]) {
+  test(`${status} asks for restaurant owner or admin sign-in`, async () => {
+    respondWith(status, JSON.stringify({ detail }));
+    await assert.rejects(apiRequest("/restaurants", { method: "POST", body: {} }), (error) => {
+      assert.equal(error.status, status);
+      assert.equal(error.detail, detail);
+      assert.equal(error.message, "Sign in as a restaurant owner or admin to make changes.");
+      return true;
+    });
+  });
+}
