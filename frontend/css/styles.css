@@ -189,12 +189,12 @@ input, select, textarea {
   font: inherit;
   color: var(--ink);
   background: var(--surface);
-  border: 2px solid var(--line);
+  border: 2px solid var(--muted);
   border-radius: var(--radius-control);
   padding: 0.6rem 0.8rem;
   min-height: 3rem;
 }
-input:hover, select:hover, textarea:hover { border-color: var(--muted); }
+input:hover, select:hover, textarea:hover { border-color: var(--ink); }
 textarea { resize: vertical; }
 
 button {

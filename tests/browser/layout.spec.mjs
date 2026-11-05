@@ -34,3 +34,37 @@ test("the self-hosted typeface loads", async ({ page, app }) => {
   expect(await page.evaluate(() => getComputedStyle(document.querySelector("h1")).fontFamily))
     .toContain("Bricolage Grotesque");
 });
+
+for (const colorScheme of ["light", "dark"]) {
+  test(`form boundaries meet non-text contrast in ${colorScheme} mode`, async ({ page, app }) => {
+    await page.emulateMedia({ colorScheme });
+    for (const path of ["/app/", "/app/create-restaurant.html", "/app/edit-restaurant.html"]) {
+      await page.goto(`${app.url}${path}`);
+      const controls = await page.locator("input, select, textarea").evaluateAll((elements) => {
+        function luminance(color) {
+          const [r, g, b] = color.match(/[\d.]+/g).slice(0, 3).map((value) => {
+            const channel = Number(value) / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+        function contrast(a, b) {
+          const [low, high] = [luminance(a), luminance(b)].sort((x, y) => x - y);
+          return (high + 0.05) / (low + 0.05);
+        }
+        return elements.filter((element) => element.getClientRects().length).map((element) => {
+          const style = getComputedStyle(element);
+          let parent = element.parentElement;
+          while (getComputedStyle(parent).backgroundColor === "rgba(0, 0, 0, 0)") parent = parent.parentElement;
+          return {
+            id: element.id,
+            contrast: Math.min(contrast(style.borderTopColor, style.backgroundColor),
+              contrast(style.borderTopColor, getComputedStyle(parent).backgroundColor)),
+          };
+        });
+      });
+      expect(controls.length).toBeGreaterThan(0);
+      for (const control of controls) expect(control.contrast, `${path} #${control.id}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+}

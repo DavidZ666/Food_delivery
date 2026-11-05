@@ -1,5 +1,20 @@
 # AI Use and Provenance
 
+## PR #112 accessibility review
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: control borders in `frontend/css/styles.css` and browser contrast
+  regressions in `tests/browser/layout.spec.mjs`.
+- Finding: the decorative border token gave empty inputs only 1.51:1 contrast
+  in light mode and 1.40:1 in dark mode. Controls now use the existing muted
+  text color for their border, preserving the decorative separators.
+- Validation: both browser regressions failed before the fix; they check the
+  rendered control boundaries against adjacent backgrounds in both schemes.
+  After the fix: 553 Python tests passed (1 Windows skip), 30 frontend tests
+  and 20 browser tests passed; `git diff --check` passed.
+- Reference: [WCAG 2.2 non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast)
+  (official guidance retrieved through Exa).
+
 ## Frontend visual design (#111)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
