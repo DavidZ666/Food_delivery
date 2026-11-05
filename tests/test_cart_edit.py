@@ -69,6 +69,19 @@ def carts(data_dir):
     return (data_dir / "carts.json").read_bytes()
 
 
+@pytest.mark.parametrize("quantity", [10 ** 400, 10 ** 308], ids=["integer-overflow", "float-overflow"])
+def test_update_rejects_unrepresentable_total_without_writing(http, accounts, data_dir, quantity):
+    ada = accounts["ada"]
+    before = carts(data_dir)
+    response = http.patch(f"/customers/{ada['id']}/cart/items/1", json={"quantity": quantity},
+                          headers=bearer(ada))
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Cart total is too large"}
+    assert carts(data_dir) == before
+    read = http.get(f"/customers/{ada['id']}/cart", headers=bearer(ada))
+    assert read.status_code == 200 and read.json()["total"] == 9.3
+
+
 def add(customer_id, product_id, quantity=1):
     return cart_service.add_item(customer_id, CartItemAdd(product_id=product_id, quantity=quantity))
 
@@ -242,7 +255,8 @@ with TestClient(app) as client:
 
 
 def test_openapi_documents_edit_routes(http):
-    paths = http.get("/openapi.json").json()["paths"]
+    document = http.get("/openapi.json").json()
+    paths = document["paths"]
     item = "/customers/{customer_id}/cart/items/{product_id}"
     for method, path in [("patch", item), ("delete", item), ("delete", "/customers/{customer_id}/cart/items")]:
         operation = paths[path][method]
@@ -251,3 +265,9 @@ def test_openapi_documents_edit_routes(http):
         assert operation["summary"] and operation["description"]
     body = paths[item]["patch"]["requestBody"]["content"]["application/json"]["schema"]["$ref"]
     assert body.endswith("/CartItemUpdate")
+    variants = paths[item]["patch"]["responses"]["422"]["content"]["application/json"]["schema"]["anyOf"]
+    assert variants == [{"$ref": "#/components/schemas/HTTPValidationError"},
+                        {"$ref": "#/components/schemas/ErrorResponse"}]
+    schemas = document["components"]["schemas"]
+    assert schemas["HTTPValidationError"]["properties"]["detail"]["type"] == "array"
+    assert schemas["ErrorResponse"]["properties"]["detail"]["type"] == "string"

@@ -555,6 +555,9 @@ the same owner and active-customer checks as #82.
   run inside the cart storage transaction against the stored cart, so concurrent
   adds cannot mix restaurants or lose quantity. Rejected requests and malformed
   `carts.json` or `products.json` (500) leave `carts.json` unchanged.
+- If the resulting line totals or subtotal exceed the finite numeric range,
+  the request returns 422 `{"detail":"Cart total is too large"}` without writing.
+  This check includes existing quantities and other lines inside the transaction.
 
 Verification: `python -m pytest tests/test_cart_add.py -q` covers valid adds,
 aggregation, totals rounding, unavailable, unknown and orphaned items,
@@ -580,6 +583,8 @@ active-customer checks as #82.
   in the cart. Changes run inside the cart storage transaction against the
   stored cart. Rejected requests and malformed `carts.json` (500) leave the file
   unchanged.
+- A quantity update whose line totals or subtotal exceed the finite numeric
+  range returns 422 `{"detail":"Cart total is too large"}` before writing.
 
 Verification: `python -m pytest tests/test_cart_edit.py -q` covers all three
 operations, invalid quantities and IDs, missing carts and items, 401, deactivated

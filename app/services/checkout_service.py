@@ -42,8 +42,9 @@ def checkout(customer_id: int) -> Order:
     unchanged since the snapshot. A failed order write leaves the cart untouched.
     If clearing fails after the order is saved, the order is still returned.
     """
-    customer = customer_service.require_active_customer(customer_id)
     with _checkout_lock:
+        # A queued checkout must use account state after the preceding checkout.
+        customer = customer_service.require_active_customer(customer_id)
         cart = cart_repo.get_by_customer_id(customer_id)
         if cart is None:
             raise cart_service.CartNotFoundError("Cart not found")

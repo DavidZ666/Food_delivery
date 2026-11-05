@@ -20,9 +20,18 @@ CART_ERRORS = {
     404: {"model": ErrorResponse, "description": "The customer has no cart (GET), or the customer no longer exists."},
     500: STORAGE_FAILURE,
 }
+CART_TOTAL_RESPONSE = {
+    "description": "Invalid request data, or the resulting cart total exceeds the finite numeric range.",
+    "content": {"application/json": {"schema": {"anyOf": [
+        {"$ref": "#/components/schemas/HTTPValidationError"},
+        {"$ref": "#/components/schemas/ErrorResponse"},
+    ]}}},
+}
 
 
 def _http_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, cart_service.CartTotalError):
+        return HTTPException(status_code=422, detail=str(exc))
     if isinstance(exc, customer_service.InactiveCustomerError):
         return HTTPException(status_code=403, detail="Forbidden")
     if isinstance(exc, (cart_service.MenuItemUnavailableError, cart_service.RestaurantConflictError)):
@@ -82,13 +91,14 @@ def create_cart(customer_id: CustomerId, response: Response):
         **CART_ERRORS,
         404: {"model": ErrorResponse, "description": "Cart not found, or menu item not found (including an item whose restaurant no longer exists)."},
         409: {"model": ErrorResponse, "description": "Menu item is unavailable, or the cart contains items from another restaurant."},
+        422: CART_TOTAL_RESPONSE,
     },
 )
 def add_cart_item(customer_id: CustomerId, item: CartItemAdd):
     try:
         return cart_service.add_item(customer_id, item)
     except (cart_service.CartNotFoundError, cart_service.MenuItemNotFoundError,
-            cart_service.MenuItemUnavailableError, cart_service.RestaurantConflictError,
+            cart_service.MenuItemUnavailableError, cart_service.RestaurantConflictError, cart_service.CartTotalError,
             customer_service.CustomerNotFoundError, customer_service.InactiveCustomerError) as exc:
         raise _http_error(exc) from exc
 
@@ -98,7 +108,8 @@ EDIT_ERRORS = {
     404: {"model": ErrorResponse, "description": "Cart not found, or the cart has no item with this product ID."},
 }
 EDIT_FAILURES = (cart_service.CartNotFoundError, cart_service.CartItemNotFoundError,
-                 customer_service.CustomerNotFoundError, customer_service.InactiveCustomerError)
+                 cart_service.CartTotalError, customer_service.CustomerNotFoundError,
+                 customer_service.InactiveCustomerError)
 
 
 @router.patch(
@@ -109,7 +120,7 @@ EDIT_FAILURES = (cart_service.CartNotFoundError, cart_service.CartItemNotFoundEr
         "The stored name and unit price are kept; totals are recalculated by the backend. "
         "Rejected requests leave the cart unchanged."
     ),
-    responses=EDIT_ERRORS,
+    responses={**EDIT_ERRORS, 422: CART_TOTAL_RESPONSE},
 )
 def update_cart_item(customer_id: CustomerId, product_id: ProductId, update: CartItemUpdate):
     try:

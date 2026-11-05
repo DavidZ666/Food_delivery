@@ -1,5 +1,26 @@
 # AI Use and Provenance
 
+## Cart numeric range review (#115, #116)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: cart repository, service and routes; add/edit regression tests;
+  API contract.
+- Change: reject nonfinite or overflowing totals before saving cart mutations.
+- Validation: six regressions failed before the fix; the cart-update branch
+  passed 723 Python tests with one existing Windows skip afterwards.
+- References (retrieved with Exa): [Python finite-number checks](https://docs.python.org/3/library/math.html#math.isfinite),
+  [JSON numeric serialization](https://docs.python.org/3/library/json.html#json.dump).
+
+## Checkout review correction (#120)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `app/services/checkout_service.py`, `tests/test_checkout.py`.
+- Change: reload the active account and delivery address after waiting for the
+  checkout lock, so queued requests honor completed account changes.
+- Validation: both queued-checkout regressions failed before the fix; the full
+  order-retrieval suite passed (825 tests, one Windows skip) with the cart fixes.
+- Reference (retrieved through Exa): [Python lock context managers](https://docs.python.org/3/library/threading.html#using-locks-conditions-and-semaphores-in-the-with-statement).
+
 ## Order retrieval (#92)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
