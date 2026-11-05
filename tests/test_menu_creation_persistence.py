@@ -70,7 +70,7 @@ with TestClient(app) as http:
     result = subprocess.run(
         [sys.executable, "-c", script], cwd=ROOT, input=json.dumps(paths),
         env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(data_dir)},
-        capture_output=True, text=True, check=True, timeout=15,
+        capture_output=True, text=True, check=True, timeout=15, encoding="utf-8",
     )
     observed = json.loads(result.stdout)
     # Response models omit extra metadata; persisted dictionaries retain it.

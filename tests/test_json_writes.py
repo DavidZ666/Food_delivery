@@ -17,13 +17,13 @@ def test_transaction_preserves_original_until_replace(data_dir, monkeypatch):
     def inspect(source, destination):
         assert path.read_bytes() == original
         assert source.parent == path.parent
-        observed.append(json.loads(source.read_text()))
+        observed.append(json.loads(source.read_text(encoding="utf-8")))
         replace(source, destination)
 
     monkeypatch.setattr(json_store.os, "replace", inspect)
     result = json_store.update_json(path, lambda current: ([*current, {"id": 999}], 999))
     assert result == 999
-    assert json.loads(path.read_text()) == observed[0]
+    assert json.loads(path.read_text(encoding="utf-8")) == observed[0]
     assert not list(data_dir.glob("*.tmp"))
 
 
@@ -74,7 +74,7 @@ def test_invalid_existing_ids_are_rejected(data_dir, identifier):
     path = data_dir / "restaurants.json"
     records = restaurant_repo.list_all()
     records[0]["id"] = identifier
-    path.write_text(json.dumps(records))
+    path.write_text(json.dumps(records), encoding="utf-8")
     original = path.read_bytes()
     with pytest.raises(ValueError):
         restaurant_repo.create({key: value for key, value in records[1].items() if key != "id"})
@@ -86,7 +86,7 @@ def test_unsorted_sparse_ids_and_extra_fields_are_preserved(data_dir):
     original = restaurant_repo.list_all()
     original[0]["id"] = 900
     original[0]["future_metadata"] = {"flag": True}
-    path.write_text(json.dumps(original))
+    path.write_text(json.dumps(original), encoding="utf-8")
     created = restaurant_repo.create({key: value for key, value in original[1].items() if key != "id"})
     assert created["id"] == 901
     assert restaurant_repo.list_all() == [*original, created]

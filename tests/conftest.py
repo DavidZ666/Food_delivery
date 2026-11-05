@@ -45,7 +45,7 @@ SAMPLE_RESTAURANTS = [
 @pytest.fixture
 def data_dir(tmp_path, monkeypatch):
     """Point the app at a temporary data folder containing sample restaurants."""
-    (tmp_path / "restaurants.json").write_text(json.dumps(SAMPLE_RESTAURANTS))
+    (tmp_path / "restaurants.json").write_text(json.dumps(SAMPLE_RESTAURANTS), encoding="utf-8")
     monkeypatch.setenv("FOOD_DELIVERY_DATA_DIR", str(tmp_path))
     return tmp_path
 

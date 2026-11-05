@@ -13,7 +13,7 @@ from app.repositories import json_store
 
 
 def test_management_api_and_readback_in_a_fresh_process(client, data_dir):
-    (data_dir / "products.json").write_text("[]")
+    (data_dir / "products.json").write_text("[]", encoding="utf-8")
     restaurant = client.post("/restaurants", json={
         "name": "Acceptance Café", "cuisine": "Fusion",
         "location": {"address": "3 Main St", "city": "Kelowna", "province": "BC", "postal_code": "V1V 1V1"},
@@ -37,14 +37,14 @@ with TestClient(app) as client:
     result = subprocess.run([sys.executable, "-c", script],
         cwd=Path(__file__).resolve().parents[1],
         env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(data_dir)},
-        capture_output=True, text=True, timeout=15, check=True)
+        capture_output=True, text=True, timeout=15, check=True, encoding="utf-8")
     assert json.loads(result.stdout) == [updated.json(), updated_item.json()]
 
 
 @pytest.mark.parametrize("field", ["name", "description", "category", "price", "image", "is_available"])
 def test_null_item_update_is_rejected_without_corrupting_storage(client, data_dir, field):
     path = data_dir / "products.json"
-    path.write_text("[]")
+    path.write_text("[]", encoding="utf-8")
     item = client.post("/restaurants/101/menu", json={"name": "Soup", "category": "Main", "price": 5}).json()
     before = path.read_bytes()
     response = client.patch(f"/restaurants/101/menu/{item['product_id']}", json={field: None})
@@ -57,7 +57,7 @@ def test_null_item_update_is_rejected_without_corrupting_storage(client, data_di
 @pytest.mark.parametrize("method", ["post", "patch"])
 def test_nonfinite_prices_are_rejected_before_writing(client, data_dir, method, price):
     path = data_dir / "products.json"
-    path.write_text("[]")
+    path.write_text("[]", encoding="utf-8")
     item = client.post("/restaurants/101/menu", json={"name": "Soup", "category": "Main", "price": 5}).json()
     before = path.read_bytes()
     url = "/restaurants/101/menu"
@@ -72,7 +72,7 @@ def test_nonfinite_prices_are_rejected_before_writing(client, data_dir, method, 
 @pytest.mark.parametrize("method", ["post", "patch"])
 def test_numeric_nonfinite_prices_return_serializable_validation_errors(client, data_dir, method, price):
     path = data_dir / "products.json"
-    path.write_text("[]")
+    path.write_text("[]", encoding="utf-8")
     item = client.post("/restaurants/101/menu", json={"name": "Soup", "category": "Main", "price": 5}).json()
     before = path.read_bytes()
     url = "/restaurants/101/menu"
@@ -98,7 +98,7 @@ def test_numeric_nonfinite_prices_return_serializable_validation_errors(client, 
 def test_failed_menu_write_preserves_storage(data_dir, monkeypatch, method, path, body):
     file = data_dir / "products.json"
     file.write_text(json.dumps([{"product_id": 1, "restaurant_id": 101, "name": "Soup",
-        "description": "", "category": "Main", "image": "", "price": 5, "is_available": True}]))
+        "description": "", "category": "Main", "image": "", "price": 5, "is_available": True}]), encoding="utf-8")
     before = file.read_bytes()
     def fail(*args, **kwargs):
         raise OSError("Simulated replacement failure")

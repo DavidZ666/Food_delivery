@@ -21,10 +21,10 @@ MENU_READS = ["/restaurants/101/menu", "/restaurants/101/menu/1"]
 ])
 def test_repository_rejects_non_array_storage(data_dir, stored, filename, repository):
     path = data_dir / filename
-    path.write_text(stored)
+    path.write_text(stored, encoding="utf-8")
     with pytest.raises(ValueError, match="Expected a JSON array"):
         repository.list_all()
-    assert path.read_text() == stored
+    assert path.read_text(encoding="utf-8") == stored
 
 
 @pytest.mark.parametrize("stored", INVALID_COLLECTIONS)
@@ -32,8 +32,8 @@ def test_repository_rejects_non_array_storage(data_dir, stored, filename, reposi
     ("restaurants.json", RESTAURANT_READS), ("products.json", MENU_READS),
 ])
 def test_invalid_storage_is_500_for_list_filter_and_detail(data_dir, stored, filename, paths):
-    (data_dir / "products.json").write_text("[]")
-    (data_dir / filename).write_text(stored)
+    (data_dir / "products.json").write_text("[]", encoding="utf-8")
+    (data_dir / filename).write_text(stored, encoding="utf-8")
     files = [data_dir / name for name in ("restaurants.json", "products.json")]
     before = [path.read_bytes() for path in files]
     with TestClient(app, raise_server_exceptions=False) as client:
@@ -46,11 +46,11 @@ def test_invalid_storage_is_500_for_list_filter_and_detail(data_dir, stored, fil
 
 
 def test_valid_empty_arrays_keep_empty_and_missing_semantics(client, data_dir):
-    (data_dir / "products.json").write_text("[]")
+    (data_dir / "products.json").write_text("[]", encoding="utf-8")
     assert product_repo.list_all() == []
     assert client.get("/restaurants/101/menu").json() == []
     assert client.get("/restaurants/101/menu/1").status_code == 404
-    (data_dir / "restaurants.json").write_text("[]")
+    (data_dir / "restaurants.json").write_text("[]", encoding="utf-8")
     assert restaurant_repo.list_all() == []
     response = client.get("/restaurants?name=no-match&cuisine=no-match")
     assert response.status_code == 200
