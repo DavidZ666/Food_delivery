@@ -152,7 +152,7 @@ def test_wrong_owner_error_matches_documentation(client, data_dir, contract, met
     assert (data_dir / "products.json").read_bytes() == before
 
 
-def test_menu_noop_example_and_deleted_maximum_id_reuse(client, contract):
+def test_menu_noop_example_and_deleted_maximum_id_is_not_reused(client, contract):
     path = "/restaurants/1/menu/1"
     original = client.get(path).json()
     operation = contract["paths"]["/restaurants/{restaurant_id}/menu/{product_id}"]["patch"]
@@ -162,7 +162,7 @@ def test_menu_noop_example_and_deleted_maximum_id_reuse(client, contract):
     create = contract["paths"]["/restaurants/{restaurant_id}/menu"]["post"]
     response = client.post("/restaurants/1/menu", json=request_body(create))
     assert response.status_code == 201
-    assert response.json()["product_id"] == 1  # Current ID policy, not a tombstone allocator.
+    assert response.json()["product_id"] == 2  # Deleted IDs are never reissued.
 
 
 def test_health_is_liveness_even_with_missing_storage(client, data_dir, contract):

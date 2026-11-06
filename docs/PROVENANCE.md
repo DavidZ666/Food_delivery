@@ -1,18 +1,72 @@
 # AI Use and Provenance
 
+## Checkout integrity review (#120)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tools: Claude Opus, OpenAI Codex.
+- Artifacts: `product_repo`, `json_store`, `cart_repo`, `order_repo`,
+  `checkout_service`; checkout, storage, migration and API regressions;
+  API contract, JSON write decision, README.
+- Influence: Claude supplied the initial persistent product sequence and shared
+  cart locking. OpenAI Codex review amendments seed a missing counter from live
+  products and legacy cart/order references, and commit cart consumption with
+  the order in one atomic receipt write instead of clearing and restoring carts.
+  Repository reads apply receipts coherently; public response shapes stay unchanged.
+- Regression evidence: failing tests exposed deleted-ID reuse, checkout/edit
+  races, failed cart restoration and missing-counter migration gaps. Targeted
+  regressions passed after the amendments. Replaying six original-branch cases
+  produced five failures (ID reuse, duplicate consumption, set/remove races).
+- Validation: `python -X utf8 -m pytest tests -q --strict-config --strict-markers`
+  passed 848 tests with one Windows skip. Eight event-synchronized race cases
+  passed all 20 repeated runs; `node --test "tests/frontend/*.test.mjs"` passed
+  30 tests. `git diff --check` passed; committed sample data is unchanged.
+- The additional `-X warn_default_encoding -W error::EncodingWarning` audit
+  fails on existing test I/O without explicit encodings (including the shared
+  `tests/conftest.py` fixture, reproduced on the untouched checkout branch).
+  Encoding cleanup and browser tests are outside this P1-only change.
+- Limits: preserve the product counter with backups; historical IDs absent from
+  all pre-migration files are unrecoverable. Use repository cart access and back
+  up carts/orders together. One process only; directory power-loss limits remain.
+- References (retrieved with Exa): [threading.RLock](https://docs.python.org/3/library/threading.html#rlock-objects),
+  [os.replace](https://docs.python.org/3/library/os.html#os.replace).
+
 ## Cart numeric range review (#115, #116)
 
 - Label: AI-GENERATED; AI tool: OpenAI Codex.
 - Artifacts: cart repository, service and routes; add/edit regression tests;
   API contract.
-- Purpose: reject unrepresentable line totals and subtotals inside the storage
-  transaction, so adding items or changing quantities cannot persist a broken cart.
-- Validation: six regressions failed before the fix; 723 Python tests passed,
-  with one existing Windows skip, after the fix.
-- Follow-up: two targeted OpenAPI assertions failed first, then passed; POST/PATCH
-  422 schemas include validation and overflow errors with resolved references.
+- Change: reject nonfinite or overflowing totals before saving cart mutations.
+- Validation: six regressions failed before the fix; the cart-update branch
+  passed 723 Python tests with one existing Windows skip afterwards.
 - References (retrieved with Exa): [Python finite-number checks](https://docs.python.org/3/library/math.html#math.isfinite),
   [JSON numeric serialization](https://docs.python.org/3/library/json.html#json.dump).
+
+## Checkout review correction (#120)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `app/services/checkout_service.py`, `tests/test_checkout.py`.
+- Change: reload the active account and delivery address after waiting for the
+  checkout lock, so queued requests honor completed account changes.
+- Validation: both queued-checkout regressions failed before the fix; the full
+  Python suite passed (794 tests, one Windows skip) with the cart fixes included.
+- Reference (retrieved through Exa): [Python lock context managers](https://docs.python.org/3/library/threading.html#using-locks-conditions-and-semaphores-in-the-with-statement).
+
+## Checkout (#90)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/services/checkout_service.py`, `app/routes/orders.py`,
+  `cart_repo.clear_if_unchanged`, `tests/test_checkout.py`, API contract and README.
+- Purpose and influence: revalidate the cart against the current menu, save a
+  placed order snapshot, then clear the cart only if unchanged. Checkouts are
+  serialized per process so one cart cannot become two orders.
+- TDD: all 22 new tests failed against an interface stub, then passed; review
+  added a failing check that a kept cart logs a warning, then the warning.
+- Validation: 786 Python tests passed with one Windows skip; checkout and cart
+  tests passed 5/5 runs without UTF-8 mode; 30 frontend tests passed;
+  representative data unchanged.
+- References: [threading.Lock](https://docs.python.org/3/library/threading.html#lock-objects),
+  [FastAPI response status codes](https://fastapi.tiangolo.com/tutorial/response-status-code/).
 
 ## Update, remove and clear the cart (#86)
 
@@ -97,6 +151,23 @@
   [FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
   [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
   [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+## Order schemas and repository (#89)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/schemas/order.py`, `app/repositories/order_repo.py`,
+  `data/orders.json`, `tests/test_order_repo.py`, API contract and README.
+- Purpose and influence: define the order snapshot and checkout/order contract
+  for #90 and #92, and persist append-only orders with stable IDs and
+  malformed-storage rejection.
+- TDD: all 47 new tests failed against interface stubs, then passed.
+- Validation: 568 Python tests passed with one Windows skip (order tests also
+  without UTF-8 mode); 30 frontend tests passed; representative data unchanged
+  apart from the new empty `data/orders.json`.
+- References: [Pydantic validators](https://docs.pydantic.dev/latest/concepts/validators/),
+  [strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/),
+  [datetime.fromisoformat](https://docs.python.org/3/library/datetime.html#datetime.datetime.fromisoformat).
 
 ## Cart schemas and repository (#81)
 

@@ -87,7 +87,7 @@ The JS is split up so most of it can be tested:
 ## API Endpoints
 
 See [the M1 API contract](docs/API_CONTRACT.md) for field rules, request/response
-examples, PATCH differences, errors, ID reuse and storage limits. `/docs` provides
+examples, PATCH differences, errors, ID allocation and storage limits. `/docs` provides
 executable examples; `/openapi.json` provides their machine-readable schemas.
 
 The contract examples are exercised with isolated data:
@@ -203,6 +203,15 @@ different directory. That directory must contain `restaurants.json`.
 Menu requests also require `products.json` in the same directory.
 Customer accounts are stored in `customers.json` (initially `[]`).
 Carts are stored in `carts.json` (initially `[]`).
+Orders are stored in `orders.json` (initially `[]`) as append-only snapshots;
+see [the order contract](docs/API_CONTRACT.md#m2-order-contract-89). Customers check
+out their cart with `POST /customers/{customer_id}/checkout`, which saves the
+order at current menu prices and consumes the cart in the same atomic order
+write; cart edits wait for an in-progress checkout. Failed order writes leave
+cart bytes unchanged ([checkout](docs/API_CONTRACT.md#checkout-90)). Cart reads
+apply internal consumption receipts; raw cart files can retain purchased items
+until the next successful mutation. Use the cart repository and back up/restore
+`carts.json` and `orders.json` together.
 
 Customer registration (`POST /customers`) and sign-in (`POST /auth/login`) are
 available. Registration stores a salted password hash and returns an active
@@ -321,7 +330,11 @@ curl -X POST http://127.0.0.1:8000/restaurants/1/menu \
 ```
 
 Use an existing restaurant ID. Success returns the complete item (201), with
-the next product ID across all restaurants. Concurrent creation requests in
+the next product ID across all restaurants; deleted IDs are never reissued
+(the high-water mark is kept in `product_ids.json`). Keep this file with backups.
+When absent, migration seeds it from live products and existing cart/order
+references; IDs erased before migration and absent everywhere cannot be recovered.
+Malformed references reject migration. Concurrent creation requests in
 one process preserve all records and allocate unique IDs. Existing item fields
 and positive, unique integer product IDs are validated before writing; invalid
 storage returns 500 without replacement. Request fields retain the

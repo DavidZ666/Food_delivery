@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import PROJECT_ROOT
 from app.core.api_contract import preserve_literal_openapi_examples
-from app.routes import auth, cart, customers, health, menu, restaurants
+from app.routes import auth, cart, customers, health, menu, orders, restaurants
 
 app = FastAPI()
 
@@ -36,6 +36,7 @@ app.include_router(menu.router)
 app.include_router(customers.router)
 app.include_router(auth.router)
 app.include_router(cart.router)
+app.include_router(orders.router)
 
 
 @app.get("/", include_in_schema=False)
