@@ -217,36 +217,6 @@ def test_malformed_orders_storage_is_500_without_changes(http, accounts, data_di
     assert storage(data_dir) == before
 
 
-def test_cart_clear_failure_after_save_still_returns_the_order(http, accounts, data_dir, monkeypatch, caplog):
-    def fail(*args):
-        raise OSError("simulated cart write failure")
-
-    monkeypatch.setattr(cart_repo, "clear_if_unchanged", fail)
-    cart = cart_of(accounts["ada"])
-    with caplog.at_level("WARNING", logger="app.services.checkout_service"):
-        response = checkout(http, accounts["ada"])
-    assert response.status_code == 201
-    assert order_repo.list_all() == [response.json()]
-    assert cart_of(accounts["ada"]) == cart
-    # The kept cart must be visible to operators, not silently ignored.
-    assert any(f"order {response.json()['order_id']}" in record.getMessage() and record.levelname == "WARNING"
-               for record in caplog.records)
-
-
-def test_cart_changed_during_checkout_is_not_cleared(accounts, monkeypatch):
-    ada = accounts["ada"]
-    create = order_repo.create
-
-    def change_cart_then_save(fields):
-        add(ada["id"], 1, 1)  # a concurrent add lands between the snapshot and the clear
-        return create(fields)
-
-    monkeypatch.setattr(order_repo, "create", change_cart_then_save)
-    order = checkout_service.checkout(ada["id"])
-    assert [item.quantity for item in order.items] == [2, 3]
-    assert [item["quantity"] for item in cart_of(ada)["items"]] == [3, 3]
-
-
 def test_concurrent_checkouts_create_one_order(accounts):
     ada = accounts["ada"]
 

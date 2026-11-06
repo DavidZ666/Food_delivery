@@ -27,8 +27,8 @@ ORDER_ERRORS = {
     description=(
         "Revalidate every cart item against the current menu, save a placed order "
         "snapshot at current names and prices with the customer's delivery address, "
-        "then clear the cart. Any failure before the order is saved leaves the cart "
-        "unchanged; the cart is cleared only if it did not change during checkout."
+        "and consume the cart in the same atomic write. A failed order write leaves "
+        "the cart unchanged. Edits to the same cart wait, then apply to the empty cart."
     ),
     responses={
         **ORDER_ERRORS,

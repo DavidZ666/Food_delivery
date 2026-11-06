@@ -3,13 +3,20 @@ import os
 import stat
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from threading import Lock
+from threading import RLock
 from typing import Any, Callable, TypeVar
 
 
 T = TypeVar("T")
 # Covers the entire transaction, not just replacement. One application process.
-_write_lock = Lock()
+# Reentrant so a transaction may update a companion file (the product ID sequence).
+_write_lock = RLock()
+_REQUIRED = object()
+
+
+def storage_lock():
+    """Coordinate a snapshot spanning JSON files with their write transactions."""
+    return _write_lock
 
 
 def read_json(file_path: Path):
@@ -24,16 +31,24 @@ def read_json_array(file_path: Path) -> list:
         raise ValueError(f"Expected a JSON array in {file_path.name}")
     return records
 
-def update_json(file_path: Path, transform: Callable[[Any], tuple[Any, T]]) -> T:
+def update_json(file_path: Path, transform: Callable[[Any], tuple[Any, T]], default: Any = _REQUIRED) -> T:
     """Serialize a read/transform/replace transaction on a local filesystem.
 
     The transform returns the new document and the caller's result. Failures
     before replacement leave the original untouched. Readers see either the
     old or new document. Multiple application processes are not supported.
+    A missing file raises unless a default document is given, which is then
+    transformed and created.
     """
     with _write_lock:
-        updated, result = transform(read_json(file_path))
-        mode = stat.S_IMODE(file_path.stat().st_mode)
+        try:
+            current = read_json(file_path)
+            mode = stat.S_IMODE(file_path.stat().st_mode)
+        except FileNotFoundError:
+            if default is _REQUIRED:
+                raise
+            current, mode = default, 0o644
+        updated, result = transform(current)
         temporary_path = None
         try:
             with NamedTemporaryFile(

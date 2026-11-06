@@ -1,5 +1,35 @@
 # AI Use and Provenance
 
+## Checkout integrity review (#120)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tools: Claude Opus, OpenAI Codex.
+- Artifacts: `product_repo`, `json_store`, `cart_repo`, `order_repo`,
+  `checkout_service`; checkout, storage, migration and API regressions;
+  API contract, JSON write decision, README.
+- Influence: Claude supplied the initial persistent product sequence and shared
+  cart locking. OpenAI Codex review amendments seed a missing counter from live
+  products and legacy cart/order references, and commit cart consumption with
+  the order in one atomic receipt write instead of clearing and restoring carts.
+  Repository reads apply receipts coherently; public response shapes stay unchanged.
+- Regression evidence: failing tests exposed deleted-ID reuse, checkout/edit
+  races, failed cart restoration and missing-counter migration gaps. Targeted
+  regressions passed after the amendments. Replaying six original-branch cases
+  produced five failures (ID reuse, duplicate consumption, set/remove races).
+- Validation: `python -X utf8 -m pytest tests -q --strict-config --strict-markers`
+  passed 848 tests with one Windows skip. Eight event-synchronized race cases
+  passed all 20 repeated runs; `node --test "tests/frontend/*.test.mjs"` passed
+  30 tests. `git diff --check` passed; committed sample data is unchanged.
+- The additional `-X warn_default_encoding -W error::EncodingWarning` audit
+  fails on existing test I/O without explicit encodings (including the shared
+  `tests/conftest.py` fixture, reproduced on the untouched checkout branch).
+  Encoding cleanup and browser tests are outside this P1-only change.
+- Limits: preserve the product counter with backups; historical IDs absent from
+  all pre-migration files are unrecoverable. Use repository cart access and back
+  up carts/orders together. One process only; directory power-loss limits remain.
+- References (retrieved with Exa): [threading.RLock](https://docs.python.org/3/library/threading.html#rlock-objects),
+  [os.replace](https://docs.python.org/3/library/os.html#os.replace).
+
 ## Cart numeric range review (#115, #116)
 
 - Label: AI-GENERATED; AI tool: OpenAI Codex.

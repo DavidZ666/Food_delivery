@@ -1,9 +1,11 @@
 from math import isfinite
+from threading import Lock, RLock
 
 from pydantic import TypeAdapter
 
 from app.core.config import get_data_dir
-from app.repositories.json_store import read_json_array, update_json
+from app.repositories import order_repo
+from app.repositories.json_store import read_json_array, storage_lock, update_json
 from app.schemas.cart import CartRead, CartRecord
 
 
@@ -16,6 +18,18 @@ class ActiveCartExistsError(ValueError):
 
 
 _MUTABLE_FIELDS = {"restaurant_id", "items"}
+_cart_locks: dict[int, RLock] = {}
+_cart_locks_guard = Lock()
+
+
+def cart_lock(customer_id: int) -> RLock:
+    """The lock that orders checkout and item mutations of one customer's cart.
+
+    Lock order is cart lock, then the storage lock; storage transactions never
+    take a cart lock, so the two cannot deadlock. One application process.
+    """
+    with _cart_locks_guard:
+        return _cart_locks.setdefault(customer_id, RLock())
 
 
 def _path():
@@ -31,12 +45,33 @@ def _validate_records(records) -> None:
     customer_ids = [cart.customer_id for cart in validated]
     if len(set(customer_ids)) != len(customer_ids):
         raise ValueError("Each customer may have at most one active cart")
+    for record in records:
+        generation = record.get("checkout_generation", 0)
+        if type(generation) is not int or generation < 0:
+            raise ValueError("Stored cart generation must be a non-negative integer")
+
+
+def _effective(record: dict, consumed: set) -> dict:
+    """An order receipt consumes a generation even before carts.json is rewritten."""
+    key = (record["customer_id"], record["cart_id"], record.get("checkout_generation", 0))
+    if key in consumed:
+        return {**record, "restaurant_id": None, "items": []}
+    return record
+
+
+def _editable(record: dict) -> dict:
+    effective = _effective(record, order_repo.consumed_cart_generations())
+    if effective is not record:
+        return {**effective, "checkout_generation": record.get("checkout_generation", 0) + 1}
+    return record
 
 
 def list_all() -> list[dict]:
-    records = read_json_array(_path())
-    _validate_records(records)
-    return records
+    with storage_lock():
+        records = read_json_array(_path())
+        _validate_records(records)
+        consumed = order_repo.consumed_cart_generations()
+        return [_effective(record, consumed) for record in records]
 
 
 def get_by_id(cart_id: int) -> dict | None:
@@ -67,17 +102,22 @@ def update_by_id(cart_id: int, changes: dict) -> dict:
     """Replace restaurant_id and/or items, preserving other stored fields."""
     if not changes or changes.keys() - _MUTABLE_FIELDS:
         raise ValueError("Only restaurant_id and items may be updated")
+    current = get_by_id(cart_id)
+    if current is None:
+        raise CartNotFoundError("Cart not found")
 
     def apply(records):
         _validate_records(records)
         for index, record in enumerate(records):
             if record["cart_id"] == cart_id:
+                record = _editable(record)
                 validated = CartRecord.model_validate({**record, **changes}, strict=True).model_dump()
                 updated = {**record, **{field: validated[field] for field in changes}}
                 return [*records[:index], updated, *records[index + 1:]], updated
         raise CartNotFoundError("Cart not found")
 
-    return update_json(_path(), apply)
+    with cart_lock(current["customer_id"]):
+        return update_json(_path(), apply)
 
 
 class RestaurantConflictError(ValueError):
@@ -106,12 +146,14 @@ def _change_items(customer_id: int, change) -> dict:
     """Apply change(record) -> (restaurant_id, items) to the stored cart in one transaction.
 
     Rules run against the current stored cart, so concurrent requests cannot bypass them.
+    The cart lock makes the change wait for an in-progress checkout of the same cart.
     """
     def apply(records):
         _validate_records(records)
         for index, record in enumerate(records):
             if record["customer_id"] != customer_id:
                 continue
+            record = _editable(record)
             restaurant_id, items = change(record, [dict(item) for item in record["items"]])
             validated = CartRecord.model_validate(
                 {**record, "restaurant_id": restaurant_id if items else None, "items": items}, strict=True,
@@ -121,7 +163,8 @@ def _change_items(customer_id: int, change) -> dict:
             return [*records[:index], updated, *records[index + 1:]], updated
         raise CartNotFoundError("Cart not found")
 
-    return update_json(_path(), apply)
+    with cart_lock(customer_id):
+        return update_json(_path(), apply)
 
 
 def _find(items: list[dict], product_id: int) -> dict:

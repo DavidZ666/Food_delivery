@@ -78,7 +78,18 @@ class Order(BaseModel):
         return self
 
 
+class CartConsumption(BaseModel):
+    """Internal receipt: this cart generation was purchased with the order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cart_id: PositiveId
+    generation: Annotated[int, Field(ge=0, strict=True)]
+
+
 class OrderRecord(Order):
     """Stored order; extra metadata on existing records is preserved, not rejected."""
 
     model_config = ConfigDict(extra="ignore")
+
+    cart_consumption: CartConsumption | None = None

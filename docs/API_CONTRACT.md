@@ -112,7 +112,8 @@ both IDs plus all six editable fields; none of its fields accept null.
 ```
 
 POST `/restaurants/1/menu` returns 201 with these values and the assigned IDs.
-On empty product storage the generated product ID is 1.
+With empty product storage, no counter and no stored product references, the
+generated product ID is 1.
 
 `MenuItemUpdate` uses the same editable fields and preserves omitted values.
 Explicit nulls, empty name/category strings, nonpositive/nonfinite prices and
@@ -131,10 +132,17 @@ repeating the DELETE returns 404. No restaurant cascade operation is implemented
 ## IDs, errors and storage limits
 
 Restaurant IDs use 1 for an empty collection, otherwise the maximum stored ID + 1.
-Product IDs use the same rule across all restaurants, not separately per menu.
-Updates and process restarts retain existing IDs and product ownership. IDs are
-not historical identifiers: deleting the greatest product ID can allow a later
-creation to reuse it. There is no tombstone or monotonic sequence allocator.
+Product IDs are allocated across all restaurants from a persistent high-water
+mark in `product_ids.json` (`{"last_product_id": n}`). Creation advances it and
+deletion preserves it before changing products, under the same reentrant storage
+lock. Deleted IDs are not reissued after restart; a failed product write can skip
+an ID. Updates retain IDs and ownership; names and prices may change.
+
+On first creation or deletion without a counter, migration seeds it from live
+products and product references in any existing `carts.json` and `orders.json`.
+Malformed references or a malformed counter return 500 without product changes.
+IDs erased before migration and absent from all those files cannot be recovered.
+Preserve the counter with backups; deleting or resetting it loses that history.
 
 | Situation | Result |
 |---|---|
@@ -178,7 +186,7 @@ See [the JSON write decision](decisions/json-writes.md) for durability limits.
 Run `python -m pytest tests/test_api_contract.py -v`, then the full pytest suite.
 The contract tests call every documented success example, compare real 404/422/500
 responses with the published examples, verify bodyless 204, null-clearing, item
-ownership, no-op updates, ID reuse and health behavior with missing storage.
+ownership, no-op updates, no ID reuse and health behavior with missing storage.
 Existing restaurant/menu tests cover the remaining search and write edge cases.
 All writes target temporary files; representative `data/` files stay unchanged.
 
@@ -271,7 +279,10 @@ owner's bearer token and an active account.
 
 ## Storage
 
-Each record is a `CartRead` without the calculated totals. A customer has at
+Each record is a `CartRead` without the calculated totals, plus optional internal
+`checkout_generation` (a non-negative integer, default 0 for legacy records).
+Order consumption receipts determine whether that generation is empty; public
+cart responses do not expose this metadata. A customer has at
 most one cart, which is their active cart; clearing it keeps its `cart_id`.
 IDs start at 1, then the maximum stored ID + 1; carts are not deleted, so IDs
 are not reused. Writes use the shared transaction and preserve other records
@@ -300,8 +311,8 @@ active account, like the cart endpoints.
 | Unknown order ID, or an order belonging to another customer | 404 `{"detail":"Order not found"}` |
 
 Checkout (#90) reads the current menu, so changed prices are not an error: the
-order uses the current price and name. The cart is cleared only after the order
-is saved; any failure leaves the cart unchanged. Orders are listed in creation
+order uses the current price and name. A successful order consumes the cart;
+a failed one leaves it unchanged. Orders are listed in creation
 order (ascending `order_id`).
 
 ## Models and snapshot rules
@@ -323,7 +334,9 @@ order (ascending `order_id`).
 
 ## Order storage
 
-Each record is an `Order`. Order IDs start at 1, then the maximum stored ID + 1,
+Each record contains an `Order`; checkout also stores an internal
+`cart_consumption` receipt with `cart_id` and `generation`, excluded from public
+order responses. Order IDs start at 1, then the maximum stored ID + 1,
 allocated and appended in one shared transaction; concurrent checkouts get unique
 IDs. Orders are append-only, so IDs are never reused. Writes preserve other
 records and extra top-level metadata. Malformed storage (invalid JSON, non-array,
@@ -347,24 +360,35 @@ POST `/customers/{customer_id}/checkout` (no body) returns 201 with the saved
    `Menu item is unavailable`. Current names and prices are used, so a price
    change is not an error.
 3. The order snapshot (status `placed`, current UTC `created_at`, the customer's
-   current `delivery_address`, stored totals) is saved first.
-4. The cart is then emptied (`restaurant_id: null`, same `cart_id`), but only if
-   its items still equal the snapshot.
+   current `delivery_address`, stored totals) and its cart-consumption receipt are
+   saved together in one atomic replacement of `orders.json`. That receipt makes
+   the cart empty (`restaurant_id: null`, same `cart_id`). Checkout does not write
+   `carts.json` or require a rollback.
 
 Failure safety and concurrency:
 
-- Any failure before the order is saved (including order storage errors, 500)
-  leaves the cart and `orders.json` unchanged.
-- Checkouts run one at a time per process, so concurrent checkouts of the same
-  cart create one order; the others see an empty cart (409).
-- If the cart changed during checkout (for example a concurrent add), the order
-  keeps the snapshot and the cart is left as it is, so the change is not lost.
-- If clearing the cart fails after the order is saved, checkout still returns
-  201 with the order and the cart keeps its items; retrying would create a
-  second order, so clients should treat 201 as final. A warning naming the
-  customer and order is logged whenever the cart is kept.
+- Checkout holds the same per-cart lock as adding, setting a quantity, removing,
+  clearing and repository `update_by_id`. After a successful order, waiting edits
+  see the consumed cart:
+  an add starts empty, setting or removing a purchased item returns 404
+  `Cart item not found`, and clear succeeds.
+- Concurrent checkouts of the same cart create one order; the others see an
+  empty cart (409).
+- A failed order write leaves cart file bytes and `orders.json` unchanged. There
+  is no separate cart-clear write that can fail after the order is saved. Waiting
+  edits apply to the original cart after a failed order write.
+- Cart reads hold the storage lock while reading carts and consumption receipts.
+  They see a coherent state and never a transient empty cart from a failed order.
+- Raw `carts.json` retains the purchased items until the next successful mutation,
+  which starts from the effective empty cart and persists generation + 1. Always
+  access carts through the repository; back up and restore carts and orders
+  together. Public cart and order response shapes are unchanged.
+- Locks are per process: run one application worker on a local filesystem with
+  no external writers. The directory entry is not synced; power-loss durability
+  remains limited (see [the write decision](decisions/json-writes.md)).
 
-Verification: `python -m pytest tests/test_checkout.py -q`.
+Verification: `python -m pytest tests/test_checkout.py tests/test_checkout_integrity.py
+tests/test_checkout_atomicity.py tests/test_product_identity_migration.py -q`.
 
 ## Registration and sign-in (#73)
 
