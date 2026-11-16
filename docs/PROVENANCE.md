@@ -48,7 +48,7 @@
 - Change: reload the active account and delivery address after waiting for the
   checkout lock, so queued requests honor completed account changes.
 - Validation: both queued-checkout regressions failed before the fix; the full
-  order-retrieval suite passed (825 tests, one Windows skip) with the cart fixes.
+  Python suite passed (794 tests, one Windows skip) with the cart fixes included.
 - Reference (retrieved through Exa): [Python lock context managers](https://docs.python.org/3/library/threading.html#using-locks-conditions-and-semaphores-in-the-with-statement).
 
 ## Order retrieval (#92)

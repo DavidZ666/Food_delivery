@@ -10,7 +10,7 @@ class OrderNotFoundError(LookupError):
 
 def _snapshot(record: dict) -> Order:
     # Stored records may carry extra metadata; return only the published fields.
-    return Order.model_validate(OrderRecord.model_validate(record).model_dump())
+    return Order.model_validate(OrderRecord.model_validate(record).model_dump(exclude={"cart_consumption"}))
 
 
 def list_orders(customer_id: int) -> list[Order]:
