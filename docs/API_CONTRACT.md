@@ -15,14 +15,14 @@ Default origin: `http://127.0.0.1:8000`. Requests with bodies use
 |---|---|---|---|
 | GET `/health` | None | `HealthResponse` | 200 |
 | GET `/restaurants` | Optional `name`, `cuisine` query strings | `RestaurantRead[]` | 200, 422 (framework validation), 500 |
-| POST `/restaurants` | `RestaurantCreate` | `RestaurantRead` | 201, 422, 500 |
+| POST `/restaurants` | Bearer token, `RestaurantCreate` | `RestaurantRead` | 201, 401, 403, 422, 500 |
 | GET `/restaurants/{restaurant_id}` | Integer restaurant ID | `RestaurantRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}` | Integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}` | Bearer token, integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu` | Integer restaurant ID | `MenuItemRead[]` | 200, 404, 422, 500 |
-| POST `/restaurants/{restaurant_id}/menu` | Integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 404, 422, 500 |
+| POST `/restaurants/{restaurant_id}/menu` | Bearer token, integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | `MenuItemRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 404, 422, 500 |
-| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | No body | 204, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 401, 403, 404, 422, 500 |
+| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer restaurant and product IDs | No body | 204, 401, 403, 404, 422, 500 |
 
 `/` redirects to `/app/` (307). Static frontend pages under `/app/` and framework
 documentation routes are not business API operations and are excluded from the
@@ -30,7 +30,9 @@ generated business-operation schema. There is no restaurant DELETE endpoint.
 
 `/health` returns `{"status":"ok"}` with a literal `ok` response model. It is a
 liveness check, not a storage-readiness check; it still returns 200 if JSON files
-are unavailable. Authentication and authorization are not implemented in M1.
+are unavailable. Restaurant and menu writes require a `restaurant_owner` or
+`admin` bearer token (see [management authorization](#restaurant-and-menu-write-authorization-78));
+browsing stays public.
 
 ## Search and reads
 
@@ -112,7 +114,8 @@ both IDs plus all six editable fields; none of its fields accept null.
 ```
 
 POST `/restaurants/1/menu` returns 201 with these values and the assigned IDs.
-On empty product storage the generated product ID is 1.
+With empty product storage, no counter and no stored product references, the
+generated product ID is 1.
 
 `MenuItemUpdate` uses the same editable fields and preserves omitted values.
 Explicit nulls, empty name/category strings, nonpositive/nonfinite prices and
@@ -131,10 +134,17 @@ repeating the DELETE returns 404. No restaurant cascade operation is implemented
 ## IDs, errors and storage limits
 
 Restaurant IDs use 1 for an empty collection, otherwise the maximum stored ID + 1.
-Product IDs use the same rule across all restaurants, not separately per menu.
-Updates and process restarts retain existing IDs and product ownership. IDs are
-not historical identifiers: deleting the greatest product ID can allow a later
-creation to reuse it. There is no tombstone or monotonic sequence allocator.
+Product IDs are allocated across all restaurants from a persistent high-water
+mark in `product_ids.json` (`{"last_product_id": n}`). Creation advances it and
+deletion preserves it before changing products, under the same reentrant storage
+lock. Deleted IDs are not reissued after restart; a failed product write can skip
+an ID. Updates retain IDs and ownership; names and prices may change.
+
+On first creation or deletion without a counter, migration seeds it from live
+products and product references in any existing `carts.json` and `orders.json`.
+Malformed references or a malformed counter return 500 without product changes.
+IDs erased before migration and absent from all those files cannot be recovered.
+Preserve the counter with backups; deleting or resetting it loses that history.
 
 | Situation | Result |
 |---|---|
@@ -169,7 +179,9 @@ Restaurant and menu writes serialize read/modify/write and atomically
 replace files using the shared transaction. Concurrent creation requests within
 one process allocate unique product IDs and preserve records; concurrent updates
 preserve changes to fields they omit. Deletions preserve concurrent creations and
-updates through the same lock. Atomic replacement alone is not a transaction.
+updates through the same lock. Reads take the same lock, so no read has the
+file open during a replacement, which Windows does not allow (#117). Atomic
+replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
@@ -178,7 +190,7 @@ See [the JSON write decision](decisions/json-writes.md) for durability limits.
 Run `python -m pytest tests/test_api_contract.py -v`, then the full pytest suite.
 The contract tests call every documented success example, compare real 404/422/500
 responses with the published examples, verify bodyless 204, null-clearing, item
-ownership, no-op updates, ID reuse and health behavior with missing storage.
+ownership, no-op updates, no ID reuse and health behavior with missing storage.
 Existing restaurant/menu tests cover the remaining search and write edge cases.
 All writes target temporary files; representative `data/` files stay unchanged.
 
@@ -186,10 +198,10 @@ All writes target temporary files; representative `data/` files stay unchanged.
 
 Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
 (`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
-Registration and sign-in endpoints are implemented by #73. Profile and
-deactivation endpoints remain planned for #75; bearer authentication guards and
-role enforcement remain planned for #77/#78. The table includes these planned
-operations; only POST `/customers` and POST `/auth/login` are implemented here.
+Registration and sign-in endpoints are implemented by #73; profile and
+deactivation endpoints by #75 (see [profile and deactivation](#profile-and-deactivation-75)).
+Bearer authentication guards (#77) and restaurant/menu role enforcement (#78)
+are implemented.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
@@ -234,8 +246,10 @@ file. Duplicate-email and unknown-ID writes leave the file unchanged.
 # M2 cart contract (#81)
 
 Schemas (`app/schemas/cart.py`) and storage (`app/repositories/cart_repo.py`,
-`data/carts.json`) are implemented. Endpoints are implemented by #82 (create,
-read), #84 (add item) and #86 (update, remove, clear). All require the cart
+`data/carts.json`) are implemented. Create and read endpoints are implemented by
+#82 (see [active cart endpoints](#active-cart-endpoints-82)) and adding items by
+#84 (see [add to cart](#add-to-cart-84)); updating, removing and clearing by #86 (see
+[update, remove and clear](#update-remove-and-clear-86)). All require the cart
 owner's bearer token and an active account.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -270,7 +284,10 @@ owner's bearer token and an active account.
 
 ## Storage
 
-Each record is a `CartRead` without the calculated totals. A customer has at
+Each record is a `CartRead` without the calculated totals, plus optional internal
+`checkout_generation` (a non-negative integer, default 0 for legacy records).
+Order consumption receipts determine whether that generation is empty; public
+cart responses do not expose this metadata. A customer has at
 most one cart, which is their active cart; clearing it keeps its `cart_id`.
 IDs start at 1, then the maximum stored ID + 1; carts are not deleted, so IDs
 are not reused. Writes use the shared transaction and preserve other records
@@ -278,6 +295,131 @@ and extra metadata. Malformed storage (invalid JSON, non-array, invalid
 records or quantities, inconsistent `restaurant_id`, duplicate products,
 nonpositive or duplicate cart IDs, more than one cart per customer) is
 rejected with 500 without overwriting the file.
+# M2 order contract (#89)
+
+Schemas (`app/schemas/order.py`) and storage (`app/repositories/order_repo.py`,
+`data/orders.json`) are implemented. Checkout is implemented by #90 (see
+[checkout](#checkout-90)); order retrieval by #92 (see
+[order retrieval](#order-retrieval-92)). Checkout requires the customer's own bearer
+token and an active account, like the cart endpoints; order reads also allow administrators.
+
+| Method and path | Inputs | Success body | Status codes |
+|---|---|---|---|
+| POST `/customers/{customer_id}/checkout` (#90) | Bearer token | `Order` | 201, 401, 403, 404, 409, 422, 500 |
+| GET `/customers/{customer_id}/orders` (#92) | Bearer token | `Order[]` | 200, 401, 403, 404, 422, 500 |
+| GET `/customers/{customer_id}/orders/{order_id}` (#92) | Bearer token | `Order` | 200, 401, 403, 404, 422, 500 |
+
+| Situation | Result |
+|---|---|
+| Customer has no cart | 404 `{"detail":"Cart not found"}` |
+| Cart has no items | 409 `{"detail":"Cart is empty"}` |
+| A cart item is no longer on the menu, is unavailable, or its restaurant no longer exists | 409 `{"detail":"Menu item is unavailable"}` |
+| Unknown order ID, or an order belonging to another customer | 404 `{"detail":"Order not found"}` |
+
+Checkout (#90) reads the current menu, so changed prices are not an error: the
+order uses the current price and name. A successful order consumes the cart;
+a failed one leaves it unchanged. Orders are listed in creation
+order (ascending `order_id`).
+
+## Models and snapshot rules
+
+- `Order`: `order_id`, `customer_id`, `restaurant_id`, `delivery_address`
+  (the customer `DeliveryAddress` at checkout), `items`, `subtotal`, `total`,
+  `status`, `created_at`. New snapshots with unknown fields are rejected.
+- `OrderItem`: `product_id`, `name`, `unit_price` (> 0), `quantity` (JSON
+  integer >= 1), `line_total`. At least one item; a product appears once.
+- `status`: `placed`, the initial and only M2 status. Later lifecycle states
+  extend this enum.
+- `created_at`: UTC ISO 8601 with a `Z` suffix, for example
+  `2026-11-04T18:30:00Z` (fractional seconds allowed). `utc_timestamp()` formats it.
+- Unlike carts, an order is a historical record: `line_total`, `subtotal` and
+  `total` are stored, not recalculated from the menu. They must stay consistent:
+  `line_total` = `unit_price` x `quantity` rounded to 2 decimals, `subtotal` = sum
+  of line totals rounded to 2 decimals, and `total` = `subtotal` (no tax, fees or
+  delivery charge in M2). Inconsistent snapshots are rejected.
+
+## Order storage
+
+Each record contains an `Order`; checkout also stores an internal
+`cart_consumption` receipt with `cart_id` and `generation`, excluded from public
+order responses. Order IDs start at 1, then the maximum stored ID + 1,
+allocated and appended in one shared transaction; concurrent checkouts get unique
+IDs. Orders are append-only, so IDs are never reused. Writes preserve other
+records and extra top-level metadata. Malformed storage (invalid JSON, non-array,
+invalid records, statuses or timestamps, inconsistent totals, nonpositive or
+duplicate order IDs) is rejected with 500 without overwriting the file; a missing
+file is not recreated.
+
+Verification: `python -m pytest tests/test_order_repo.py -q`. Explicit snapshot
+fixtures cover schema validation, total consistency, timestamps, ID allocation
+across a fresh process, concurrent creation, lookups and malformed storage.
+
+### Checkout (#90)
+
+POST `/customers/{customer_id}/checkout` (no body) returns 201 with the saved
+`Order`. Access matches the cart routes: 401 for missing or invalid credentials,
+403 for a deactivated account, another customer or a non-customer role.
+
+1. The cart must exist (404 `Cart not found`) and have items (409 `Cart is empty`).
+2. Each item is re-read from the current menu. It must still exist, belong to the
+   cart's restaurant, be available with a nonblank name, and its restaurant must
+   exist; otherwise 409 `Menu item is unavailable`. Current names and prices are
+   used, so a price change is not an error. A total outside the finite numeric
+   range returns 422 `Cart total is too large`.
+3. The order snapshot (status `placed`, current UTC `created_at`, the customer's
+   current `delivery_address`, stored totals) and its cart-consumption receipt are
+   saved together in one atomic replacement of `orders.json`. That receipt makes
+   the cart empty (`restaurant_id: null`, same `cart_id`). Checkout does not write
+   `carts.json` or require a rollback.
+
+Failure safety and concurrency:
+
+- Checkout holds the same per-cart lock as adding, setting a quantity, removing,
+  clearing and repository `update_by_id`. After a successful order, waiting edits
+  see the consumed cart:
+  an add starts empty, setting or removing a purchased item returns 404
+  `Cart item not found`, and clear succeeds.
+- Concurrent checkouts of the same cart create one order; the others see an
+  empty cart (409).
+- A failed order write leaves cart file bytes and `orders.json` unchanged. There
+  is no separate cart-clear write that can fail after the order is saved. Waiting
+  edits apply to the original cart after a failed order write.
+- Cart reads hold the storage lock while reading carts and consumption receipts.
+  They see a coherent state and never a transient empty cart from a failed order.
+- Raw `carts.json` retains the purchased items until the next successful mutation,
+  which starts from the effective empty cart and persists generation + 1. Always
+  access carts through the repository; back up and restore carts and orders
+  together. Public cart and order response shapes are unchanged.
+- Locks are per process: run one application worker on a local filesystem with
+  no external writers. The directory entry is not synced; power-loss durability
+  remains limited (see [the write decision](decisions/json-writes.md)).
+
+Verification: `python -m pytest tests/test_checkout.py tests/test_checkout_integrity.py
+tests/test_checkout_atomicity.py tests/test_product_identity_migration.py -q`.
+
+### Order retrieval (#92)
+
+GET `/customers/{customer_id}/orders` returns that customer's stored orders in
+ascending `order_id` (200 `[]` when there are none). GET
+`/customers/{customer_id}/orders/{order_id}` returns one order. The issue's
+`/orders/{order_id}` wording maps to this customer-scoped path.
+
+- Access uses `require_account_access` (#75): an active account reads its own
+  orders; an `admin` may read any customer's orders, including a deactivated
+  customer's (orders are historical records). Reads never modify storage.
+- Order of checks: 401 credentials, 403 deactivated caller or another account
+  without the admin role, 422 non-positive or non-integer IDs, then 404.
+- 404 `{"detail":"Order not found"}` for an unknown order or an order belonging to
+  another customer under this path, so other customers' order IDs are not revealed.
+  404 `{"detail":"Customer not found"}` is reachable only by administrators.
+- Responses are the stored snapshots, never recalculated: later menu price, name
+  or availability changes, and deleted menu items, leave them unchanged. Extra
+  stored metadata is not returned. Malformed `orders.json` returns 500 unchanged.
+
+Verification: `python -m pytest tests/test_order_retrieval.py -q` covers history
+and single reads, ownership and admin access, 401/403/404/422, snapshot integrity
+after menu edits and deletion, restart persistence, storage errors and OpenAPI.
+
 ## Registration and sign-in (#73)
 
 POST `/customers` with this JSON body returns 201 and `CustomerRead`:
@@ -328,3 +470,175 @@ Verification: `python -m pytest tests/test_customer_auth.py tests/test_customer_
 Tests use temporary storage and cover real-process restart/login, duplicate and
 invalid registration, inactive accounts, storage failures, token expiry and
 tampering, password secrecy, and generated OpenAPI request/response contracts.
+
+### Authentication and authorization guards (#77)
+
+`app/core/auth.py` provides reusable FastAPI dependencies:
+
+| Dependency | Behavior |
+|---|---|
+| `get_current_customer` | Resolve the bearer token and reload the active account from storage; return `CustomerRead` without its password hash. Accepts any supported role. |
+| `require_roles(*roles)` | Require one of the explicitly allowed roles: `customer`, `restaurant_owner`, `admin`. No role inheritance; an empty allowlist denies everyone; unknown role names raise `ValueError` when the guard is defined. |
+| `require_customer_owner` | Require the `customer` role and a matching `customer_id` path parameter. No admin bypass; endpoints allowing administrators must define that policy separately. |
+
+Compose the dependencies with `Depends`, for example:
+
+```python
+from typing import Annotated
+from fastapi import Depends
+from app.core.auth import require_roles
+from app.schemas.customer import CustomerRead
+
+def manage_menu(
+    account: Annotated[CustomerRead, Depends(require_roles("restaurant_owner", "admin"))],
+):
+    ...
+```
+
+Missing, malformed, unknown, expired or tampered credentials, and tokens for
+removed accounts, return 401 `{"detail":"Invalid credentials"}` with
+`WWW-Authenticate: Bearer`. Tokens must be sent in the `Authorization` header;
+query parameters and cookies do not authenticate a request. Inactive accounts,
+disallowed roles and failed ownership checks return 403 `{"detail":"Forbidden"}`.
+Account state and role changes apply on the next request, including to existing
+tokens. Storage failures remain 500; the guards do not write account data.
+
+Composed routes declare HTTP bearer security in OpenAPI. This issue provides the
+guards; #78 applies them to restaurant/menu writes and #75 to customer operations.
+
+Verification: `python -m pytest tests/test_auth_guards.py -q`. Isolated tests cover
+the full role matrix, ownership, deactivation and role changes after sign-in,
+token rejection, storage errors, secret exclusion and OpenAPI composition.
+Implementation references (retrieved through Exa):
+[FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
+[current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
+[dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+### Restaurant and menu write authorization (#78)
+
+POST/PATCH `/restaurants` and POST/PATCH/DELETE `/restaurants/{restaurant_id}/menu...`
+depend on `require_management` (`require_roles("restaurant_owner", "admin")`).
+All GET browsing routes stay public. Writes without valid bearer credentials
+return 401 `{"detail":"Invalid credentials"}` with `WWW-Authenticate: Bearer`;
+customers and inactive accounts receive 403 `{"detail":"Forbidden"}`.
+Authentication is checked before request validation, so an unauthenticated
+invalid body returns 401, not 422. Rejected requests do not modify storage.
+OpenAPI declares HTTP bearer security and 401/403 examples on the five writes only.
+Restaurants have no stored owner yet, so any active restaurant owner may manage
+any restaurant.
+
+The frontend sends `sessionStorage["accessToken"]` as a bearer token when
+present and shows "Sign in as a restaurant owner or admin to make changes." on
+401/403. The sign-in UI that stores the token is #95.
+
+Verification: `python -m pytest tests/test_management_auth.py -q` covers 401/403
+on every write, owner/admin success, public reads and OpenAPI security; existing
+write tests use a seeded restaurant owner. Browser tests sign in through
+`/auth/login` and cover a rejected write before an authorized one.
+
+### Profile and deactivation (#75)
+
+GET/PATCH `/customers/{customer_id}` and POST `/customers/{customer_id}/deactivate`
+depend on `require_account_access`: an active signed-in account may manage its
+own ID, and an `admin` may manage any ID. Unlike `require_customer_owner`, this
+allows administrators and restaurant owners managing their own account.
+
+- Order of checks: 401 credentials, 403 inactive account or another account,
+  422 request validation, then 404 `{"detail":"Customer not found"}` (reachable
+  only by administrators). Rejected requests do not modify storage.
+- PATCH accepts `CustomerUpdate` and persists all supplied fields in one
+  transaction; `delivery_address` merges by subfield and text is trimmed.
+- Deactivation persists `is_active: false`, keeps the record and ID (IDs are not
+  reused) and returns the updated `CustomerRead`. Existing tokens then receive
+  403, and sign-in returns 403.
+- `customer_service.require_active_customer(customer_id)` is the shared check for
+  Cart and Checkout. It returns `CustomerRead`, or raises `CustomerNotFoundError`
+  or `InactiveCustomerError`.
+
+Verification: `python -m pytest tests/test_customer_profile.py -q`. Isolated tests
+cover profile reads, partial and address updates, 401/403/404/422 without storage
+changes, deactivation, restart persistence in a fresh process, active-customer
+validation and OpenAPI security.
+
+### Active cart endpoints (#82)
+
+`GET` and `POST /customers/{customer_id}/cart` (`app/routes/cart.py`,
+`app/services/cart_service.py`) depend on `require_customer_owner`: only the
+active `customer` whose ID is in the path may use the cart. Administrators and
+restaurant owners receive 403, including for their own IDs, as the contract
+above says carts require the cart owner's token.
+
+- POST creates an empty cart and returns 201, or returns the existing cart
+  unchanged with 200. It never creates a second active cart; a concurrent create
+  falls back to the stored cart.
+- GET returns 200 with the cart, or 404 `{"detail":"Cart not found"}` when the
+  customer has none.
+- Both return `CartRead` with backend-calculated `line_total`, `subtotal` and
+  `total`. An empty cart is `{"cart_id":1,"customer_id":1,"restaurant_id":null,"items":[],"subtotal":0.0,"total":0.0}`.
+- Check order: 401 credentials, 403 inactive account or non-customer role,
+  422 invalid ID, 403 another customer's ID, then cart storage. The service also calls
+  `customer_service.require_active_customer`. Rejected requests and malformed
+  `carts.json` (500) leave storage unchanged.
+
+Verification: `python -m pytest tests/test_cart_api.py -q`. Isolated service and
+API tests cover empty and existing carts, totals, idempotent creation including
+a concurrent create, 401/403/422/500 without storage changes, deactivation,
+restart persistence in a fresh process and OpenAPI security.
+
+### Add to cart (#84)
+
+POST `/customers/{customer_id}/cart/items` with `CartItemAdd` (for example
+`{"product_id":1,"quantity":2}`) returns 200 and the updated `CartRead`. It uses
+the same owner and active-customer checks as #82.
+
+- The cart must already exist (POST `/customers/{customer_id}/cart`); otherwise
+  404 `{"detail":"Cart not found"}`.
+- The product is looked up by ID and confirmed through `menu_service.get_menu_item`.
+  Unknown products, and products whose restaurant no longer exists, return 404
+  `{"detail":"Menu item not found"}`. `is_available` must be `true` and the name
+  nonblank, otherwise 409 `{"detail":"Menu item is unavailable"}`.
+- Name, `unit_price` and `restaurant_id` come from the stored menu item. The first
+  item sets the cart's `restaurant_id`; an item from another restaurant while the
+  cart has items returns 409 `{"detail":"Cart contains items from another restaurant"}`.
+- Adding a product already in the cart adds to its quantity and refreshes its name
+  and unit price from the menu. Quantities have no upper bound beyond the schema.
+- Check order after authentication: 422 body, 404 cart, 404 menu item, 409
+  unavailable, 409 other restaurant. The restaurant rule and quantity aggregation
+  run inside the cart storage transaction against the stored cart, so concurrent
+  adds cannot mix restaurants or lose quantity. Rejected requests and malformed
+  `carts.json` or `products.json` (500) leave `carts.json` unchanged.
+- If the resulting line totals or subtotal exceed the finite numeric range,
+  the request returns 422 `{"detail":"Cart total is too large"}` without writing.
+  This check includes existing quantities and other lines inside the transaction.
+
+Verification: `python -m pytest tests/test_cart_add.py -q` covers valid adds,
+aggregation, totals rounding, unavailable, unknown and orphaned items,
+cross-restaurant conflicts, invalid bodies, missing carts, deactivation, 401 and
+cross-customer 403, malformed storage, concurrent adds, restart persistence and OpenAPI.
+
+### Update, remove and clear (#86)
+
+All three return 200 and the updated `CartRead`, with the same owner and
+active-customer checks as #82.
+
+- PATCH `/customers/{customer_id}/cart/items/{product_id}` with `CartItemUpdate`
+  (for example `{"quantity":3}`) sets the quantity; it does not add to it. The
+  stored name and unit price are kept and totals are recalculated.
+- DELETE `/customers/{customer_id}/cart/items/{product_id}` removes the item.
+- DELETE `/customers/{customer_id}/cart/items` removes every item. It keeps the
+  `cart_id` and succeeds on an already empty cart.
+- When the cart becomes empty, `restaurant_id` becomes null and `subtotal` and
+  `total` are 0, so items from any restaurant can be added next.
+- Errors after authentication: 422 for an invalid body or a nonpositive or
+  non-integer `product_id`, 404 `{"detail":"Cart not found"}` when the customer
+  has no cart, and 404 `{"detail":"Cart item not found"}` when the product is not
+  in the cart. Changes run inside the cart storage transaction against the
+  stored cart. Rejected requests and malformed `carts.json` (500) leave the file
+  unchanged.
+- A quantity update whose line totals or subtotal exceed the finite numeric
+  range returns 422 `{"detail":"Cart total is too large"}` before writing.
+
+Verification: `python -m pytest tests/test_cart_edit.py -q` covers all three
+operations, invalid quantities and IDs, missing carts and items, 401, deactivated
+and cross-customer 403, malformed storage, concurrent updates, restart
+persistence and OpenAPI.

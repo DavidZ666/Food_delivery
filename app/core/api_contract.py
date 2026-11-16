@@ -30,6 +30,18 @@ STORAGE_FAILURE = {
 }
 
 
+MANAGEMENT_AUTH = {
+    401: {
+        "description": "Missing, invalid or expired bearer credentials.",
+        "content": {"application/json": {"example": {"detail": "Invalid credentials"}}},
+    },
+    403: {
+        "description": "Inactive account, or a role other than restaurant_owner or admin.",
+        "content": {"application/json": {"example": {"detail": "Forbidden"}}},
+    },
+}
+
+
 def json_response(example, description="Successful response"):
     return {"description": description, "content": {"application/json": {"example": example}}}
 

@@ -28,7 +28,7 @@ def products(data_dir):
     return records
 
 
-def test_concurrent_delete_create_and_update_preserve_all_other_changes(data_dir, products):
+def test_concurrent_delete_create_and_update_preserve_all_other_changes(manager_headers, data_dir, products):
     restaurants_before = (data_dir / "restaurants.json").read_bytes()
     changes = {"name": "New soup", "description": "Seasonal", "price": 6.75,
                "category": "Specials", "image": "soup.png", "is_available": False}
@@ -42,7 +42,7 @@ def test_concurrent_delete_create_and_update_preserve_all_other_changes(data_dir
 
     def request(job):
         method, path, body = job
-        with TestClient(app) as http:
+        with TestClient(app, headers=manager_headers) as http:
             start.wait(timeout=10)
             response = http.request(method, path, json=body)
             assert response.status_code == {"delete": 204, "post": 201, "patch": 200}[method]
@@ -62,14 +62,14 @@ def test_concurrent_delete_create_and_update_preserve_all_other_changes(data_dir
     assert {item["name"]: item["restaurant_id"] for item in stored[2:]} == {
         f"Item {index}": 101 + index % 2 for index in range(7)
     }
-    with TestClient(app) as http:
+    with TestClient(app, headers=manager_headers) as http:
         assert http.get("/restaurants/101/menu/2").status_code == 404
     assert (data_dir / "restaurants.json").read_bytes() == restaurants_before
     assert not list(data_dir.glob("*.tmp"))
 
 
 @pytest.mark.parametrize("stage", ["temporary", "serialization", "sync", "replacement"])
-def test_failed_delete_preserves_files_cleans_temp_and_allows_retry(
+def test_failed_delete_preserves_files_cleans_temp_and_allows_retry(manager_headers,
     data_dir, products, monkeypatch, stage,
 ):
     paths = [data_dir / name for name in ("restaurants.json", "products.json")]
@@ -88,7 +88,7 @@ def test_failed_delete_preserves_files_cleans_temp_and_allows_retry(
         "sync": (json_store.os, "fsync"),
         "replacement": (json_store.os, "replace"),
     }[stage]
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         with monkeypatch.context() as patch:
             patch.setattr(target, attribute, fail)
             response = http.delete("/restaurants/101/menu/2")

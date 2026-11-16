@@ -59,6 +59,17 @@ It's plain HTML and JavaScript. The pages call the API with paths like
 `/restaurants`, and since they're on the same server we didn't need any CORS
 setup. All the restaurant data comes from the API, nothing is hard-coded.
 
+**Design (#111):** every page shares one header (ByteBites home link, primary
+navigation with the current page marked, and a skip link). Colors, type and
+spacing are CSS custom properties at the top of `frontend/css/styles.css`, with
+a dark scheme that follows the system setting. Text colors meet WCAG AA contrast
+in both schemes, keyboard focus is always visible, and reduced-motion settings
+are respected. The Bricolage Grotesque typeface is self-hosted in
+`frontend/fonts/` under the SIL Open Font License (`OFL.txt`). New views should
+reuse the tokens rather than add new colors. `tests/test_frontend_design.py` and
+`tests/browser/layout.spec.mjs` check page chrome, contrast, self-hosted assets
+and mobile layout from 320px.
+
 | Page | Path | API calls |
 |------|------|------|
 | Restaurant list | /app/ | `GET /restaurants`, name search and cuisine filtering |
@@ -87,7 +98,7 @@ The JS is split up so most of it can be tested:
 ## API Endpoints
 
 See [the M1 API contract](docs/API_CONTRACT.md) for field rules, request/response
-examples, PATCH differences, errors, ID reuse and storage limits. `/docs` provides
+examples, PATCH differences, errors, ID allocation and storage limits. `/docs` provides
 executable examples; `/openapi.json` provides their machine-readable schemas.
 
 The contract examples are exercised with isolated data:
@@ -203,12 +214,33 @@ different directory. That directory must contain `restaurants.json`.
 Menu requests also require `products.json` in the same directory.
 Customer accounts are stored in `customers.json` (initially `[]`).
 Carts are stored in `carts.json` (initially `[]`).
+Orders are stored in `orders.json` (initially `[]`) as append-only snapshots;
+see [the order contract](docs/API_CONTRACT.md#m2-order-contract-89). Customers check
+out their cart with `POST /customers/{customer_id}/checkout`, which saves the
+order at current menu prices and consumes the cart in the same atomic order
+write; cart edits wait for an in-progress checkout. Failed order writes leave
+cart bytes unchanged ([checkout](docs/API_CONTRACT.md#checkout-90)). Cart reads
+apply internal consumption receipts; raw cart files can retain purchased items
+until the next successful mutation. Use the cart repository and back up/restore
+`carts.json` and `orders.json` together.
+They can list their orders or read one with `GET /customers/{customer_id}/orders[/{order_id}]`;
+administrators can read any customer's orders ([order retrieval](docs/API_CONTRACT.md#order-retrieval-92)).
 
 Customer registration (`POST /customers`) and sign-in (`POST /auth/login`) are
 available. Registration stores a salted password hash and returns an active
 customer account; sign-in returns an opaque bearer token valid for one hour.
 Sessions are in memory and end on server restart; accounts persist and can sign
-in again. Profile routes and authorization guards are separate follow-up tasks.
+in again. Reusable authentication, role and customer-ownership guards are available
+in `app/core/auth.py`; see [the guard contract](docs/API_CONTRACT.md#authentication-and-authorization-guards-77).
+Restaurant and menu writes require a restaurant owner or admin token; browsing
+stays public ([write authorization](docs/API_CONTRACT.md#restaurant-and-menu-write-authorization-78)).
+Signed-in customers can read and update their profile and delivery address or
+deactivate their account ([profile contract](docs/API_CONTRACT.md#profile-and-deactivation-75)).
+Customers can create and retrieve their single active cart with backend-calculated
+totals ([cart endpoints](docs/API_CONTRACT.md#active-cart-endpoints-82)) and add
+available menu items from one restaurant ([add to cart](docs/API_CONTRACT.md#add-to-cart-84)),
+then change quantities, remove items or clear the cart
+([update, remove and clear](docs/API_CONTRACT.md#update-remove-and-clear-86)).
 See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
 for request examples, error codes and the credential contract.
 
@@ -217,7 +249,8 @@ The restaurant request follows this path:
 Route → Service → Repository → JSON file
 
 Restaurant and menu writes serialize the complete read/modify/write
-operation within one process. They sync a temporary file in the data directory
+operation within one process, and reads wait for any write in progress so
+replacement also works on Windows (#117). They sync a temporary file in the data directory
 before atomically replacing the target; failures before replacement preserve
 the original file and clean up temporary files.
 Run **one application worker** against a local data directory. Multiple
@@ -318,7 +351,11 @@ curl -X POST http://127.0.0.1:8000/restaurants/1/menu \
 ```
 
 Use an existing restaurant ID. Success returns the complete item (201), with
-the next product ID across all restaurants. Concurrent creation requests in
+the next product ID across all restaurants; deleted IDs are never reissued
+(the high-water mark is kept in `product_ids.json`). Keep this file with backups.
+When absent, migration seeds it from live products and existing cart/order
+references; IDs erased before migration and absent everywhere cannot be recovered.
+Malformed references reject migration. Concurrent creation requests in
 one process preserve all records and allocate unique IDs. Existing item fields
 and positive, unique integer product IDs are validated before writing; invalid
 storage returns 500 without replacement. Request fields retain the

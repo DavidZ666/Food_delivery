@@ -34,7 +34,7 @@ def representative_data_unchanged():
      "description": "Légumes frais", "image": "soup.png", "is_available": False,
      "product_id": 999, "restaurant_id": 999},
 ], ids=["defaults", "all-fields"])
-def test_new_items_and_next_id_survive_restart(data_dir, existing, body):
+def test_new_items_and_next_id_survive_restart(manager_headers, data_dir, existing, body):
     (data_dir / "products.json").write_text(json.dumps(existing), encoding="utf-8")
     restaurants_before = (data_dir / "restaurants.json").read_bytes()
     first_id = 9 if existing else 1
@@ -42,7 +42,7 @@ def test_new_items_and_next_id_survive_restart(data_dir, existing, body):
               **{key: value for key, value in body.items()
                  if key not in {"product_id", "restaurant_id"}}}
     created = []
-    with TestClient(app) as http:
+    with TestClient(app, headers=manager_headers) as http:
         for offset, owner in enumerate((101, 102)):
             response = http.post(f"/restaurants/{owner}/menu", json=body)
             expected = {**fields, "product_id": first_id + offset, "restaurant_id": owner}
@@ -61,8 +61,12 @@ from fastapi.testclient import TestClient
 from app.main import app
 with TestClient(app) as http:
     responses = [http.get(path) for path in json.load(sys.stdin)]
+    # Sessions are in memory, so the fresh process signs in again.
+    token = http.post('/auth/login', json={
+        'email': 'manager@example.com', 'password': 'manager-test-password'}).json()['access_token']
     next_item = http.post('/restaurants/101/menu', json={
-        'name': 'Next item', 'category': 'Main', 'price': 3})
+        'name': 'Next item', 'category': 'Main', 'price': 3},
+        headers={'Authorization': f'Bearer {token}'})
     print(json.dumps({
         'reads': [[response.status_code, response.json()] for response in responses],
         'next': [next_item.status_code, next_item.json()]}))

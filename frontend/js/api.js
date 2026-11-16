@@ -14,6 +14,8 @@ export class ApiError extends Error {
 
 export async function apiRequest(path, { method = "GET", body } = {}) {
   const options = { method, headers: { Accept: "application/json" } };
+  const token = storedToken();
+  if (token) options.headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) {
     options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(body);
@@ -54,7 +56,17 @@ async function readJson(response) {
   }
 }
 
+// Bearer token from sign-in (#95); storage can be missing or blocked.
+function storedToken() {
+  try {
+    return globalThis.sessionStorage?.getItem("accessToken") ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function errorMessage(status, data) {
+  if (status === 401 || status === 403) return "Sign in as a restaurant owner or admin to make changes.";
   if (typeof data?.detail === "string") return data.detail;
   if (status === 422) return "Some fields are invalid.";
   if (status >= 500) return "The server could not complete the request. Try again later.";

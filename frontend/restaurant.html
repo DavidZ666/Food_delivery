@@ -7,10 +7,19 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header>
-    <nav><a href="./">Back to restaurants</a></nav>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html">Edit a restaurant</a>
+      </nav>
+    </div>
   </header>
-  <main>
+  <main id="main">
+    <p class="back"><a href="./">Back to restaurants</a></p>
     <h1 id="restaurant-name">Restaurant details</h1>
     <p><a id="edit-link" hidden>Edit this restaurant</a></p>
     <p id="restaurant-status" role="status" aria-live="polite"></p>
