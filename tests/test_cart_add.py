@@ -186,6 +186,16 @@ def test_api_rejections(http, accounts, data_dir, customer, body, status, detail
     assert carts(data_dir) == before
 
 
+def test_blank_menu_name_is_unavailable(http, accounts, data_dir):
+    products = [{**PRODUCTS[0], "name": " "}, *PRODUCTS[1:]]
+    (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
+    before = carts(data_dir)
+    ada = accounts["ada"]
+    response = http.post(PATH.format(id=ada["id"]), json={"product_id": 1}, headers=bearer(ada))
+    assert response.status_code == 409 and response.json() == {"detail": "Menu item is unavailable"}
+    assert carts(data_dir) == before
+
+
 def test_api_cross_restaurant_conflict(http, accounts, data_dir):
     ada = accounts["ada"]
     http.post(PATH.format(id=ada["id"]), json={"product_id": 1}, headers=bearer(ada))
