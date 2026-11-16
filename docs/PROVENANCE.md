@@ -17,6 +17,137 @@
   [strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/),
   [datetime.fromisoformat](https://docs.python.org/3/library/datetime.html#datetime.datetime.fromisoformat).
 
+## Cart numeric range review (#115, #116)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: cart repository, service and routes; add/edit regression tests;
+  API contract.
+- Purpose: reject unrepresentable line totals and subtotals inside the storage
+  transaction, so adding items or changing quantities cannot persist a broken cart.
+- Validation: six regressions failed before the fix; 723 Python tests passed,
+  with one existing Windows skip, after the fix.
+- Follow-up: two targeted OpenAPI assertions failed first, then passed; POST/PATCH
+  422 schemas include validation and overflow errors with resolved references.
+- References (retrieved with Exa): [Python finite-number checks](https://docs.python.org/3/library/math.html#math.isfinite),
+  [JSON numeric serialization](https://docs.python.org/3/library/json.html#json.dump).
+
+## Update, remove and clear the cart (#86)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: cart repository transaction helper (`_change_items`) with
+  `set_quantity`, `remove_item` and `clear`; cart service and routes;
+  `tests/test_cart_edit.py`; API contract and README.
+- Purpose and influence: let customers change quantities, remove items and clear
+  the cart. Emptying the cart releases its restaurant binding. `add_item` now
+  shares the same transaction helper.
+- TDD: all 37 new tests failed before implementation (missing service functions
+  and routes), then passed.
+- Validation: 717 Python tests passed with one Windows skip. The cart test files
+  also pass without UTF-8 mode, all 30 frontend tests pass, and representative
+  data is unchanged.
+- References: [FastAPI path parameter validation](https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/),
+  [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
+## Add to cart (#84)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `cart_repo.add_item`, `cart_service.add_item`, POST
+  `/customers/{customer_id}/cart/items`, `tests/test_cart_add.py`, API contract and README.
+- Purpose and influence: let active customers add available menu items with
+  menu-sourced prices, quantity aggregation and the single-restaurant rule
+  enforced inside the storage transaction.
+- TDD: 35 new tests failed against interface stubs (`NotImplementedError`, missing
+  route), then passed.
+- Validation: 680 Python tests passed with one Windows skip; cart tests also
+  passed without UTF-8 mode; 30 frontend tests passed; representative data unchanged.
+- References: [FastAPI request body](https://fastapi.tiangolo.com/tutorial/body/),
+  [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
+## Active cart endpoints (#82)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/services/cart_service.py`, `app/routes/cart.py`, router
+  registration, `tests/test_cart_api.py`, API contract and README.
+- Purpose and influence: let an active customer create or retrieve their single
+  active cart with backend-calculated totals, guarded by customer ownership.
+- TDD: all 36 new tests failed against an interface stub and missing routes,
+  then passed after implementation.
+- Validation: 645 Python tests passed with one Windows skip; 30 frontend tests
+  passed; representative data unchanged.
+- References: [FastAPI response status code](https://fastapi.tiangolo.com/advanced/response-change-status-code/),
+  [path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/).
+
+## Customer profile and deactivation (#75)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: profile service functions and routes, `require_account_access`,
+  `tests/test_customer_profile.py`, API contract and README.
+- Purpose and influence: let accounts read, update and deactivate themselves
+  (administrators any account) and provide shared active-customer validation.
+- TDD: 42 new tests failed before implementation, then passed; one check-order
+  test was added afterwards to lock the documented 401/403/422 order.
+- Validation: 609 Python tests passed with one Windows skip; representative
+  data unchanged.
+- References: [FastAPI path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/),
+  [Pydantic exclude_unset](https://docs.pydantic.dev/latest/concepts/serialization/#exclude_unset).
+
+## Restaurant and menu write authorization (#78)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: guarded restaurant/menu write routes, OpenAPI 401/403 metadata,
+  frontend bearer header and sign-in message, `tests/test_management_auth.py`,
+  authorized Python/browser fixtures, API contract and README.
+- Purpose and influence: require `restaurant_owner` or `admin` credentials for
+  the five management writes while keeping browsing public.
+- TDD: 30 new API tests, 3 frontend tests and 2 browser write tests failed
+  before implementation, then passed.
+- Validation: 610 Python tests (1 Windows skip), 34 frontend tests and 13
+  browser tests passed; representative data unchanged.
+- References: [FastAPI path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/),
+  [Playwright API testing](https://playwright.dev/docs/api-testing).
+
+## Authentication and role guards (#77)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: OpenAI Codex.
+- Artifacts: `app/core/auth.py`, `tests/test_auth_guards.py`, README and API contract.
+- Purpose and influence: implement reusable bearer authentication, current
+  account-state validation, explicit role checks and customer ownership checks.
+- TDD: existing customer/auth/cart baseline passed 110 tests; the new guard
+  suite produced 37 failures against interface stubs, then passed all 39 tests
+  after implementation. Tests use isolated storage and a test-only application.
+- Validation: 566 Python tests passed with one Windows skip (POSIX permissions),
+  including all 45 guard tests after adding wrong-scheme and unknown-role cases
+  from review. All 30 frontend tests passed.
+  Representative data unchanged; `git diff --check` passed. Browser tests were
+  not run for this backend dependency change.
+- References (retrieved through Exa):
+  [FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
+  [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
+  [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+## Serialize JSON reads with writes (#117)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/repositories/json_store.py`, `tests/test_json_writes.py`,
+  API contract and README.
+- Purpose and influence: reads now share the storage lock (reentrant), so a
+  write never replaces a file another thread has open. Windows rejects that
+  replacement with `PermissionError`; found by concurrent cart tests in #86.
+- TDD: the deterministic in-progress-read test failed in UTF-8 and locale modes,
+  and the read/write stress test failed intermittently on Windows; both passed
+  after the fix (storage tests 5/5 runs without UTF-8 mode).
+- Validation: 523 Python tests passed with one Windows skip; representative
+  data unchanged.
+- References: [os.replace](https://docs.python.org/3/library/os.html#os.replace),
+  [threading.RLock](https://docs.python.org/3/library/threading.html#rlock-objects).
+
 ## Cart schemas and repository (#81)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

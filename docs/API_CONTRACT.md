@@ -15,14 +15,14 @@ Default origin: `http://127.0.0.1:8000`. Requests with bodies use
 |---|---|---|---|
 | GET `/health` | None | `HealthResponse` | 200 |
 | GET `/restaurants` | Optional `name`, `cuisine` query strings | `RestaurantRead[]` | 200, 422 (framework validation), 500 |
-| POST `/restaurants` | `RestaurantCreate` | `RestaurantRead` | 201, 422, 500 |
+| POST `/restaurants` | Bearer token, `RestaurantCreate` | `RestaurantRead` | 201, 401, 403, 422, 500 |
 | GET `/restaurants/{restaurant_id}` | Integer restaurant ID | `RestaurantRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}` | Integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}` | Bearer token, integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu` | Integer restaurant ID | `MenuItemRead[]` | 200, 404, 422, 500 |
-| POST `/restaurants/{restaurant_id}/menu` | Integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 404, 422, 500 |
+| POST `/restaurants/{restaurant_id}/menu` | Bearer token, integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | `MenuItemRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 404, 422, 500 |
-| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | No body | 204, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 401, 403, 404, 422, 500 |
+| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer restaurant and product IDs | No body | 204, 401, 403, 404, 422, 500 |
 
 `/` redirects to `/app/` (307). Static frontend pages under `/app/` and framework
 documentation routes are not business API operations and are excluded from the
@@ -30,7 +30,9 @@ generated business-operation schema. There is no restaurant DELETE endpoint.
 
 `/health` returns `{"status":"ok"}` with a literal `ok` response model. It is a
 liveness check, not a storage-readiness check; it still returns 200 if JSON files
-are unavailable. Authentication and authorization are not implemented in M1.
+are unavailable. Restaurant and menu writes require a `restaurant_owner` or
+`admin` bearer token (see [management authorization](#restaurant-and-menu-write-authorization-78));
+browsing stays public.
 
 ## Search and reads
 
@@ -169,7 +171,9 @@ Restaurant and menu writes serialize read/modify/write and atomically
 replace files using the shared transaction. Concurrent creation requests within
 one process allocate unique product IDs and preserve records; concurrent updates
 preserve changes to fields they omit. Deletions preserve concurrent creations and
-updates through the same lock. Atomic replacement alone is not a transaction.
+updates through the same lock. Reads take the same lock, so no read has the
+file open during a replacement, which Windows does not allow (#117). Atomic
+replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
@@ -186,10 +190,10 @@ All writes target temporary files; representative `data/` files stay unchanged.
 
 Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
 (`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
-Registration and sign-in endpoints are implemented by #73. Profile and
-deactivation endpoints remain planned for #75; bearer authentication guards and
-role enforcement remain planned for #77/#78. The table includes these planned
-operations; only POST `/customers` and POST `/auth/login` are implemented here.
+Registration and sign-in endpoints are implemented by #73; profile and
+deactivation endpoints by #75 (see [profile and deactivation](#profile-and-deactivation-75)).
+Bearer authentication guards (#77) and restaurant/menu role enforcement (#78)
+are implemented.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
@@ -234,8 +238,10 @@ file. Duplicate-email and unknown-ID writes leave the file unchanged.
 # M2 cart contract (#81)
 
 Schemas (`app/schemas/cart.py`) and storage (`app/repositories/cart_repo.py`,
-`data/carts.json`) are implemented. Endpoints are implemented by #82 (create,
-read), #84 (add item) and #86 (update, remove, clear). All require the cart
+`data/carts.json`) are implemented. Create and read endpoints are implemented by
+#82 (see [active cart endpoints](#active-cart-endpoints-82)) and adding items by
+#84 (see [add to cart](#add-to-cart-84)); updating, removing and clearing by #86 (see
+[update, remove and clear](#update-remove-and-clear-86)). All require the cart
 owner's bearer token and an active account.
 
 | Method and path | Inputs | Success body | Status codes |
@@ -384,3 +390,175 @@ Verification: `python -m pytest tests/test_customer_auth.py tests/test_customer_
 Tests use temporary storage and cover real-process restart/login, duplicate and
 invalid registration, inactive accounts, storage failures, token expiry and
 tampering, password secrecy, and generated OpenAPI request/response contracts.
+
+### Authentication and authorization guards (#77)
+
+`app/core/auth.py` provides reusable FastAPI dependencies:
+
+| Dependency | Behavior |
+|---|---|
+| `get_current_customer` | Resolve the bearer token and reload the active account from storage; return `CustomerRead` without its password hash. Accepts any supported role. |
+| `require_roles(*roles)` | Require one of the explicitly allowed roles: `customer`, `restaurant_owner`, `admin`. No role inheritance; an empty allowlist denies everyone; unknown role names raise `ValueError` when the guard is defined. |
+| `require_customer_owner` | Require the `customer` role and a matching `customer_id` path parameter. No admin bypass; endpoints allowing administrators must define that policy separately. |
+
+Compose the dependencies with `Depends`, for example:
+
+```python
+from typing import Annotated
+from fastapi import Depends
+from app.core.auth import require_roles
+from app.schemas.customer import CustomerRead
+
+def manage_menu(
+    account: Annotated[CustomerRead, Depends(require_roles("restaurant_owner", "admin"))],
+):
+    ...
+```
+
+Missing, malformed, unknown, expired or tampered credentials, and tokens for
+removed accounts, return 401 `{"detail":"Invalid credentials"}` with
+`WWW-Authenticate: Bearer`. Tokens must be sent in the `Authorization` header;
+query parameters and cookies do not authenticate a request. Inactive accounts,
+disallowed roles and failed ownership checks return 403 `{"detail":"Forbidden"}`.
+Account state and role changes apply on the next request, including to existing
+tokens. Storage failures remain 500; the guards do not write account data.
+
+Composed routes declare HTTP bearer security in OpenAPI. This issue provides the
+guards; #78 applies them to restaurant/menu writes and #75 to customer operations.
+
+Verification: `python -m pytest tests/test_auth_guards.py -q`. Isolated tests cover
+the full role matrix, ownership, deactivation and role changes after sign-in,
+token rejection, storage errors, secret exclusion and OpenAPI composition.
+Implementation references (retrieved through Exa):
+[FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
+[current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
+[dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+### Restaurant and menu write authorization (#78)
+
+POST/PATCH `/restaurants` and POST/PATCH/DELETE `/restaurants/{restaurant_id}/menu...`
+depend on `require_management` (`require_roles("restaurant_owner", "admin")`).
+All GET browsing routes stay public. Writes without valid bearer credentials
+return 401 `{"detail":"Invalid credentials"}` with `WWW-Authenticate: Bearer`;
+customers and inactive accounts receive 403 `{"detail":"Forbidden"}`.
+Authentication is checked before request validation, so an unauthenticated
+invalid body returns 401, not 422. Rejected requests do not modify storage.
+OpenAPI declares HTTP bearer security and 401/403 examples on the five writes only.
+Restaurants have no stored owner yet, so any active restaurant owner may manage
+any restaurant.
+
+The frontend sends `sessionStorage["accessToken"]` as a bearer token when
+present and shows "Sign in as a restaurant owner or admin to make changes." on
+401/403. The sign-in UI that stores the token is #95.
+
+Verification: `python -m pytest tests/test_management_auth.py -q` covers 401/403
+on every write, owner/admin success, public reads and OpenAPI security; existing
+write tests use a seeded restaurant owner. Browser tests sign in through
+`/auth/login` and cover a rejected write before an authorized one.
+
+### Profile and deactivation (#75)
+
+GET/PATCH `/customers/{customer_id}` and POST `/customers/{customer_id}/deactivate`
+depend on `require_account_access`: an active signed-in account may manage its
+own ID, and an `admin` may manage any ID. Unlike `require_customer_owner`, this
+allows administrators and restaurant owners managing their own account.
+
+- Order of checks: 401 credentials, 403 inactive account or another account,
+  422 request validation, then 404 `{"detail":"Customer not found"}` (reachable
+  only by administrators). Rejected requests do not modify storage.
+- PATCH accepts `CustomerUpdate` and persists all supplied fields in one
+  transaction; `delivery_address` merges by subfield and text is trimmed.
+- Deactivation persists `is_active: false`, keeps the record and ID (IDs are not
+  reused) and returns the updated `CustomerRead`. Existing tokens then receive
+  403, and sign-in returns 403.
+- `customer_service.require_active_customer(customer_id)` is the shared check for
+  Cart and Checkout. It returns `CustomerRead`, or raises `CustomerNotFoundError`
+  or `InactiveCustomerError`.
+
+Verification: `python -m pytest tests/test_customer_profile.py -q`. Isolated tests
+cover profile reads, partial and address updates, 401/403/404/422 without storage
+changes, deactivation, restart persistence in a fresh process, active-customer
+validation and OpenAPI security.
+
+### Active cart endpoints (#82)
+
+`GET` and `POST /customers/{customer_id}/cart` (`app/routes/cart.py`,
+`app/services/cart_service.py`) depend on `require_customer_owner`: only the
+active `customer` whose ID is in the path may use the cart. Administrators and
+restaurant owners receive 403, including for their own IDs, as the contract
+above says carts require the cart owner's token.
+
+- POST creates an empty cart and returns 201, or returns the existing cart
+  unchanged with 200. It never creates a second active cart; a concurrent create
+  falls back to the stored cart.
+- GET returns 200 with the cart, or 404 `{"detail":"Cart not found"}` when the
+  customer has none.
+- Both return `CartRead` with backend-calculated `line_total`, `subtotal` and
+  `total`. An empty cart is `{"cart_id":1,"customer_id":1,"restaurant_id":null,"items":[],"subtotal":0.0,"total":0.0}`.
+- Check order: 401 credentials, 403 inactive account or non-customer role,
+  422 invalid ID, 403 another customer's ID, then cart storage. The service also calls
+  `customer_service.require_active_customer`. Rejected requests and malformed
+  `carts.json` (500) leave storage unchanged.
+
+Verification: `python -m pytest tests/test_cart_api.py -q`. Isolated service and
+API tests cover empty and existing carts, totals, idempotent creation including
+a concurrent create, 401/403/422/500 without storage changes, deactivation,
+restart persistence in a fresh process and OpenAPI security.
+
+### Add to cart (#84)
+
+POST `/customers/{customer_id}/cart/items` with `CartItemAdd` (for example
+`{"product_id":1,"quantity":2}`) returns 200 and the updated `CartRead`. It uses
+the same owner and active-customer checks as #82.
+
+- The cart must already exist (POST `/customers/{customer_id}/cart`); otherwise
+  404 `{"detail":"Cart not found"}`.
+- The product is looked up by ID and confirmed through `menu_service.get_menu_item`.
+  Unknown products, and products whose restaurant no longer exists, return 404
+  `{"detail":"Menu item not found"}`. `is_available` must be `true` and the name
+  nonblank, otherwise 409 `{"detail":"Menu item is unavailable"}`.
+- Name, `unit_price` and `restaurant_id` come from the stored menu item. The first
+  item sets the cart's `restaurant_id`; an item from another restaurant while the
+  cart has items returns 409 `{"detail":"Cart contains items from another restaurant"}`.
+- Adding a product already in the cart adds to its quantity and refreshes its name
+  and unit price from the menu. Quantities have no upper bound beyond the schema.
+- Check order after authentication: 422 body, 404 cart, 404 menu item, 409
+  unavailable, 409 other restaurant. The restaurant rule and quantity aggregation
+  run inside the cart storage transaction against the stored cart, so concurrent
+  adds cannot mix restaurants or lose quantity. Rejected requests and malformed
+  `carts.json` or `products.json` (500) leave `carts.json` unchanged.
+- If the resulting line totals or subtotal exceed the finite numeric range,
+  the request returns 422 `{"detail":"Cart total is too large"}` without writing.
+  This check includes existing quantities and other lines inside the transaction.
+
+Verification: `python -m pytest tests/test_cart_add.py -q` covers valid adds,
+aggregation, totals rounding, unavailable, unknown and orphaned items,
+cross-restaurant conflicts, invalid bodies, missing carts, deactivation, 401 and
+cross-customer 403, malformed storage, concurrent adds, restart persistence and OpenAPI.
+
+### Update, remove and clear (#86)
+
+All three return 200 and the updated `CartRead`, with the same owner and
+active-customer checks as #82.
+
+- PATCH `/customers/{customer_id}/cart/items/{product_id}` with `CartItemUpdate`
+  (for example `{"quantity":3}`) sets the quantity; it does not add to it. The
+  stored name and unit price are kept and totals are recalculated.
+- DELETE `/customers/{customer_id}/cart/items/{product_id}` removes the item.
+- DELETE `/customers/{customer_id}/cart/items` removes every item. It keeps the
+  `cart_id` and succeeds on an already empty cart.
+- When the cart becomes empty, `restaurant_id` becomes null and `subtotal` and
+  `total` are 0, so items from any restaurant can be added next.
+- Errors after authentication: 422 for an invalid body or a nonpositive or
+  non-integer `product_id`, 404 `{"detail":"Cart not found"}` when the customer
+  has no cart, and 404 `{"detail":"Cart item not found"}` when the product is not
+  in the cart. Changes run inside the cart storage transaction against the
+  stored cart. Rejected requests and malformed `carts.json` (500) leave the file
+  unchanged.
+- A quantity update whose line totals or subtotal exceed the finite numeric
+  range returns 422 `{"detail":"Cart total is too large"}` before writing.
+
+Verification: `python -m pytest tests/test_cart_edit.py -q` covers all three
+operations, invalid quantities and IDs, missing carts and items, 401, deactivated
+and cross-customer 403, malformed storage, concurrent updates, restart
+persistence and OpenAPI.
