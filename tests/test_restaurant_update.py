@@ -99,36 +99,36 @@ def test_empty_store_returns_404(client, data_dir):
 
 
 @pytest.mark.parametrize('stored', ['{invalid', '{}', '[{"id":101}]'])
-def test_invalid_store_preserved(data_dir, stored):
+def test_invalid_store_preserved(manager_headers, data_dir, stored):
     path = data_dir / 'restaurants.json'
     path.write_text(stored)
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         assert http.patch('/restaurants/101', json={'name': 'New'}).status_code == 500
     assert path.read_text() == stored
 
 
 @pytest.mark.parametrize('identifier', [0, -1, True, '101', 101.0, 102])
-def test_bad_stored_ids_preserved(data_dir, identifier):
+def test_bad_stored_ids_preserved(manager_headers, data_dir, identifier):
     path = data_dir / 'restaurants.json'
     records = json.loads(path.read_text())
     records[0]['id'] = identifier
     path.write_text(json.dumps(records))
     before = path.read_bytes()
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         assert http.patch('/restaurants/101', json={'name': 'New'}).status_code == 500
     assert path.read_bytes() == before
 
 
-def test_missing_store_is_not_created(data_dir):
+def test_missing_store_is_not_created(manager_headers, data_dir):
     path = data_dir / 'restaurants.json'
     path.rename(data_dir / 'backup.json')
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         assert http.patch('/restaurants/101', json={'name': 'New'}).status_code == 500
     assert not path.exists()
 
 
 @pytest.mark.parametrize('failure', ['serialize', 'sync', 'replace', 'temporary'])
-def test_write_failure_preserves_original_and_products(data_dir, monkeypatch, failure):
+def test_write_failure_preserves_original_and_products(manager_headers, data_dir, monkeypatch, failure):
     path = data_dir / 'restaurants.json'
     before = path.read_bytes()
     products = data_dir / 'products.json'
@@ -145,7 +145,7 @@ def test_write_failure_preserves_original_and_products(data_dir, monkeypatch, fa
         'temporary': (json_store, 'NamedTemporaryFile'),
     }[failure]
     monkeypatch.setattr(target, attribute, fail)
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         response = http.patch('/restaurants/101', json={'name': 'New'})
     assert response.status_code == 500
     assert path.read_bytes() == before
@@ -212,7 +212,7 @@ def test_openapi_matches_partial_request_contract(client):
     schema = client.get('/openapi.json').json()
     operation = schema['paths']['/restaurants/{restaurant_id}']['patch']
     assert operation['summary'] and operation['description']
-    assert set(operation['responses']) == {'200', '404', '422', '500'}
+    assert set(operation['responses']) == {'200', '401', '403', '404', '422', '500'}
     assert operation['parameters'][0]['schema']['type'] == 'integer'
     assert operation['requestBody']['required']
     body = operation['requestBody']['content']['application/json']

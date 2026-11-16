@@ -95,7 +95,7 @@ def test_numeric_nonfinite_prices_return_serializable_validation_errors(client, 
     ("post", "/restaurants/101/menu", {"name": "Soup", "category": "Main", "price": 5}),
     ("patch", "/restaurants/101/menu/1", {"price": 8}),
 ])
-def test_failed_menu_write_preserves_storage(data_dir, monkeypatch, method, path, body):
+def test_failed_menu_write_preserves_storage(manager_headers, data_dir, monkeypatch, method, path, body):
     file = data_dir / "products.json"
     file.write_text(json.dumps([{"product_id": 1, "restaurant_id": 101, "name": "Soup",
         "description": "", "category": "Main", "image": "", "price": 5, "is_available": True}]))
@@ -103,7 +103,7 @@ def test_failed_menu_write_preserves_storage(data_dir, monkeypatch, method, path
     def fail(*args, **kwargs):
         raise OSError("Simulated replacement failure")
     monkeypatch.setattr(json_store.os, "replace", fail)
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         assert getattr(http, method)(path, json=body).status_code == 500
     assert file.read_bytes() == before
 

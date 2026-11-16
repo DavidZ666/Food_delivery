@@ -3,15 +3,17 @@ from typing import Annotated
 from fastapi import (
     APIRouter,
     Body,
+    Depends,
     HTTPException,
     Path,
     Query,
 )
 
 from app.core.api_contract import (
-    RESTAURANT_CREATE, RESTAURANT_READ, RESTAURANT_UPDATED, STORAGE_FAILURE,
+    MANAGEMENT_AUTH, RESTAURANT_CREATE, RESTAURANT_READ, RESTAURANT_UPDATED, STORAGE_FAILURE,
     json_response, validation_example,
 )
+from app.core.auth import require_management
 from app.schemas.error import ErrorResponse
 from app.schemas.restaurant import (
     RestaurantCreate,
@@ -89,7 +91,8 @@ def list_restaurants(
         "a supplied ID, are rejected with 422. Storage failures return 500."
     ),
     response_description="The persisted restaurant, including its generated ID.",
-    responses={201: json_response(RESTAURANT_READ, "Created restaurant with generated ID.")},
+    dependencies=[Depends(require_management)],
+    responses={201: json_response(RESTAURANT_READ, "Created restaurant with generated ID."), **MANAGEMENT_AUTH},
     openapi_extra=validation_example(body=True, path=False),
 )
 def create_restaurant(restaurant: Annotated[RestaurantCreate, Body(
@@ -142,8 +145,10 @@ def get_restaurant(
         "single-process storage model."
     ),
     response_description="The complete persisted restaurant.",
+    dependencies=[Depends(require_management)],
     responses={
         200: json_response(RESTAURANT_UPDATED, "Complete restaurant after the partial-update example."),
+        **MANAGEMENT_AUTH,
         404: {
             "model": ErrorResponse,
             "description": (
