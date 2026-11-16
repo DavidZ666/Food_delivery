@@ -129,10 +129,12 @@ def test_delivery_address_is_a_snapshot(http, accounts):
 
 # Revalidation and rejected checkouts
 
-@pytest.mark.parametrize("change", ["unavailable", "removed", "restaurant_deleted"])
+@pytest.mark.parametrize("change", ["unavailable", "blank_name", "removed", "restaurant_deleted"])
 def test_items_no_longer_orderable_are_409_without_changes(http, accounts, data_dir, change):
     if change == "unavailable":
         set_product(data_dir, 2, is_available=False)
+    elif change == "blank_name":
+        set_product(data_dir, 2, name=" ")
     elif change == "removed":
         products = [p for p in PRODUCTS if p["product_id"] != 2]
         (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
@@ -151,6 +153,14 @@ def test_item_moved_to_another_restaurant_is_409(http, accounts, data_dir):
     before = storage(data_dir)
     response = checkout(http, accounts["ada"])
     assert response.status_code == 409 and response.json() == {"detail": "Menu item is unavailable"}
+    assert storage(data_dir) == before
+
+
+def test_unrepresentable_total_is_422_without_changes(http, accounts, data_dir):
+    set_product(data_dir, 1, price=1e308)
+    before = storage(data_dir)
+    response = checkout(http, accounts["ada"])
+    assert response.status_code == 422 and response.json() == {"detail": "Cart total is too large"}
     assert storage(data_dir) == before
 
 

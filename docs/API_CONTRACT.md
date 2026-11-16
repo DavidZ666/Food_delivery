@@ -361,9 +361,10 @@ POST `/customers/{customer_id}/checkout` (no body) returns 201 with the saved
 
 1. The cart must exist (404 `Cart not found`) and have items (409 `Cart is empty`).
 2. Each item is re-read from the current menu. It must still exist, belong to the
-   cart's restaurant, be available, and its restaurant must exist; otherwise 409
-   `Menu item is unavailable`. Current names and prices are used, so a price
-   change is not an error.
+   cart's restaurant, be available with a nonblank name, and its restaurant must
+   exist; otherwise 409 `Menu item is unavailable`. Current names and prices are
+   used, so a price change is not an error. A total outside the finite numeric
+   range returns 422 `Cart total is too large`.
 3. The order snapshot (status `placed`, current UTC `created_at`, the customer's
    current `delivery_address`, stored totals) and its cart-consumption receipt are
    saved together in one atomic replacement of `orders.json`. That receipt makes

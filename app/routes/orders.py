@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 
 from app.core.api_contract import STORAGE_FAILURE
 from app.core.auth import require_customer_owner
+from app.routes.cart import CART_TOTAL_RESPONSE
 from app.schemas.error import ErrorResponse
 from app.schemas.order import Order
 from app.services import cart_service, checkout_service, customer_service
@@ -34,6 +35,7 @@ ORDER_ERRORS = {
         **ORDER_ERRORS,
         404: {"model": ErrorResponse, "description": "The customer has no cart."},
         409: {"model": ErrorResponse, "description": "The cart is empty, or an item is no longer on the menu, unavailable, or its restaurant no longer exists."},
+        422: CART_TOTAL_RESPONSE,
     },
 )
 def checkout(customer_id: CustomerId):
@@ -45,3 +47,5 @@ def checkout(customer_id: CustomerId):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (checkout_service.EmptyCartError, checkout_service.MenuItemUnavailableError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except cart_service.CartTotalError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

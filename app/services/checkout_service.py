@@ -1,4 +1,5 @@
 """Checkout (#90): atomically save an order snapshot and its cart consumption."""
+from math import isfinite
 from threading import Lock
 
 from app.repositories import cart_repo, order_repo
@@ -24,7 +25,8 @@ def _current_item(restaurant_id: int, line: dict) -> dict:
         product = cart_service._menu_item(line["product_id"])
     except cart_service.MenuItemNotFoundError:
         raise MenuItemUnavailableError("Menu item is unavailable") from None
-    if product["restaurant_id"] != restaurant_id or product["is_available"] is not True:
+    if (product["restaurant_id"] != restaurant_id or product["is_available"] is not True
+            or not product["name"].strip()):
         raise MenuItemUnavailableError("Menu item is unavailable")
     unit_price = product["price"]
     return {"product_id": product["product_id"], "name": product["name"], "unit_price": unit_price,
@@ -48,6 +50,8 @@ def checkout(customer_id: int) -> Order:
             raise EmptyCartError("Cart is empty")
         items = [_current_item(cart["restaurant_id"], line) for line in cart["items"]]
         subtotal = round(sum(item["line_total"] for item in items), 2)
+        if not isfinite(subtotal):
+            raise cart_service.CartTotalError("Cart total is too large")
         order = order_repo.create({
             "customer_id": customer_id, "restaurant_id": cart["restaurant_id"],
             "delivery_address": customer.delivery_address.model_dump(),
