@@ -210,12 +210,13 @@ customer account; sign-in returns an opaque bearer token valid for one hour.
 Sessions are in memory and end on server restart; accounts persist and can sign
 in again. Reusable authentication, role and customer-ownership guards are available
 in `app/core/auth.py`; see [the guard contract](docs/API_CONTRACT.md#authentication-and-authorization-guards-77).
+Restaurant and menu writes require a restaurant owner or admin token; browsing
+stays public ([write authorization](docs/API_CONTRACT.md#restaurant-and-menu-write-authorization-78)).
 Signed-in customers can read and update their profile and delivery address or
 deactivate their account ([profile contract](docs/API_CONTRACT.md#profile-and-deactivation-75)).
 Customers can create and retrieve their single active cart with backend-calculated
 totals ([cart endpoints](docs/API_CONTRACT.md#active-cart-endpoints-82)) and add
 available menu items from one restaurant ([add to cart](docs/API_CONTRACT.md#add-to-cart-84)).
-Applying guards to restaurant/menu writes is a follow-up task.
 See [the customer/auth API contract](docs/API_CONTRACT.md#registration-and-sign-in-73)
 for request examples, error codes and the credential contract.
 
@@ -224,7 +225,8 @@ The restaurant request follows this path:
 Route → Service → Repository → JSON file
 
 Restaurant and menu writes serialize the complete read/modify/write
-operation within one process. They sync a temporary file in the data directory
+operation within one process, and reads wait for any write in progress so
+replacement also works on Windows (#117). They sync a temporary file in the data directory
 before atomically replacing the target; failures before replacement preserve
 the original file and clean up temporary files.
 Run **one application worker** against a local data directory. Multiple

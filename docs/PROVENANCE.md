@@ -60,6 +60,22 @@
 - References: [FastAPI path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/),
   [Pydantic exclude_unset](https://docs.pydantic.dev/latest/concepts/serialization/#exclude_unset).
 
+## Restaurant and menu write authorization (#78)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: guarded restaurant/menu write routes, OpenAPI 401/403 metadata,
+  frontend bearer header and sign-in message, `tests/test_management_auth.py`,
+  authorized Python/browser fixtures, API contract and README.
+- Purpose and influence: require `restaurant_owner` or `admin` credentials for
+  the five management writes while keeping browsing public.
+- TDD: 30 new API tests, 3 frontend tests and 2 browser write tests failed
+  before implementation, then passed.
+- Validation: 610 Python tests (1 Windows skip), 34 frontend tests and 13
+  browser tests passed; representative data unchanged.
+- References: [FastAPI path operation dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-in-path-operation-decorators/),
+  [Playwright API testing](https://playwright.dev/docs/api-testing).
+
 ## Authentication and role guards (#77)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
@@ -79,6 +95,23 @@
   [FastAPI HTTPBearer](https://fastapi.tiangolo.com/reference/security/#fastapi.security.HTTPBearer),
   [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
   [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
+
+## Serialize JSON reads with writes (#117)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: `app/repositories/json_store.py`, `tests/test_json_writes.py`,
+  API contract and README.
+- Purpose and influence: reads now share the storage lock (reentrant), so a
+  write never replaces a file another thread has open. Windows rejects that
+  replacement with `PermissionError`; found by concurrent cart tests in #86.
+- TDD: the deterministic in-progress-read test failed in UTF-8 and locale modes,
+  and the read/write stress test failed intermittently on Windows; both passed
+  after the fix (storage tests 5/5 runs without UTF-8 mode).
+- Validation: 523 Python tests passed with one Windows skip; representative
+  data unchanged.
+- References: [os.replace](https://docs.python.org/3/library/os.html#os.replace),
+  [threading.RLock](https://docs.python.org/3/library/threading.html#rlock-objects).
 
 ## Cart schemas and repository (#81)
 
