@@ -8,19 +8,21 @@ from typing import Any, Callable, TypeVar
 
 
 T = TypeVar("T")
-# Covers the entire transaction, not just replacement. One application process.
-# Reentrant so a transaction may update a companion file (the product ID sequence).
-_write_lock = RLock()
+# Covers whole transactions and every read. Windows cannot replace a file that
+# another thread has open, so reads must not overlap a write (#117). Reentrant so
+# a transaction can read or update a companion file (the product ID sequence).
+# One application process.
+_storage_lock = RLock()
 _REQUIRED = object()
 
 
 def storage_lock():
     """Coordinate a snapshot spanning JSON files with their write transactions."""
-    return _write_lock
+    return _storage_lock
 
 
 def read_json(file_path: Path):
-    with file_path.open("r", encoding="utf-8") as file:
+    with _storage_lock, file_path.open("r", encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -40,7 +42,7 @@ def update_json(file_path: Path, transform: Callable[[Any], tuple[Any, T]], defa
     A missing file raises unless a default document is given, which is then
     transformed and created.
     """
-    with _write_lock:
+    with _storage_lock:
         try:
             current = read_json(file_path)
             mode = stat.S_IMODE(file_path.stat().st_mode)

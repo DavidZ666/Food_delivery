@@ -15,14 +15,14 @@ Default origin: `http://127.0.0.1:8000`. Requests with bodies use
 |---|---|---|---|
 | GET `/health` | None | `HealthResponse` | 200 |
 | GET `/restaurants` | Optional `name`, `cuisine` query strings | `RestaurantRead[]` | 200, 422 (framework validation), 500 |
-| POST `/restaurants` | `RestaurantCreate` | `RestaurantRead` | 201, 422, 500 |
+| POST `/restaurants` | Bearer token, `RestaurantCreate` | `RestaurantRead` | 201, 401, 403, 422, 500 |
 | GET `/restaurants/{restaurant_id}` | Integer restaurant ID | `RestaurantRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}` | Integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}` | Bearer token, integer restaurant ID, `RestaurantUpdate` | Complete `RestaurantRead` | 200, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu` | Integer restaurant ID | `MenuItemRead[]` | 200, 404, 422, 500 |
-| POST `/restaurants/{restaurant_id}/menu` | Integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 404, 422, 500 |
+| POST `/restaurants/{restaurant_id}/menu` | Bearer token, integer restaurant ID, `MenuItemCreate` | `MenuItemRead` | 201, 401, 403, 404, 422, 500 |
 | GET `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | `MenuItemRead` | 200, 404, 422, 500 |
-| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 404, 422, 500 |
-| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Integer restaurant and product IDs | No body | 204, 404, 422, 500 |
+| PATCH `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer IDs, `MenuItemUpdate` | Complete `MenuItemRead` | 200, 401, 403, 404, 422, 500 |
+| DELETE `/restaurants/{restaurant_id}/menu/{product_id}` | Bearer token, integer restaurant and product IDs | No body | 204, 401, 403, 404, 422, 500 |
 
 `/` redirects to `/app/` (307). Static frontend pages under `/app/` and framework
 documentation routes are not business API operations and are excluded from the
@@ -30,7 +30,9 @@ generated business-operation schema. There is no restaurant DELETE endpoint.
 
 `/health` returns `{"status":"ok"}` with a literal `ok` response model. It is a
 liveness check, not a storage-readiness check; it still returns 200 if JSON files
-are unavailable. Authentication and authorization are not implemented in M1.
+are unavailable. Restaurant and menu writes require a `restaurant_owner` or
+`admin` bearer token (see [management authorization](#restaurant-and-menu-write-authorization-78));
+browsing stays public.
 
 ## Search and reads
 
@@ -177,7 +179,9 @@ Restaurant and menu writes serialize read/modify/write and atomically
 replace files using the shared transaction. Concurrent creation requests within
 one process allocate unique product IDs and preserve records; concurrent updates
 preserve changes to fields they omit. Deletions preserve concurrent creations and
-updates through the same lock. Atomic replacement alone is not a transaction.
+updates through the same lock. Reads take the same lock, so no read has the
+file open during a replacement, which Windows does not allow (#117). Atomic
+replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
@@ -196,7 +200,8 @@ Schemas (`app/schemas/customer.py`, `app/schemas/auth.py`) and storage
 (`app/repositories/customer_repo.py`, `data/customers.json`) are implemented.
 Registration and sign-in endpoints are implemented by #73; profile and
 deactivation endpoints by #75 (see [profile and deactivation](#profile-and-deactivation-75)).
-Restaurant/menu role enforcement remains planned for #78.
+Bearer authentication guards (#77) and restaurant/menu role enforcement (#78)
+are implemented.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
@@ -484,6 +489,28 @@ Implementation references (retrieved through Exa):
 [current-user dependencies](https://fastapi.tiangolo.com/tutorial/security/get-current-user/),
 [dependency composition](https://fastapi.tiangolo.com/reference/dependencies/).
 
+### Restaurant and menu write authorization (#78)
+
+POST/PATCH `/restaurants` and POST/PATCH/DELETE `/restaurants/{restaurant_id}/menu...`
+depend on `require_management` (`require_roles("restaurant_owner", "admin")`).
+All GET browsing routes stay public. Writes without valid bearer credentials
+return 401 `{"detail":"Invalid credentials"}` with `WWW-Authenticate: Bearer`;
+customers and inactive accounts receive 403 `{"detail":"Forbidden"}`.
+Authentication is checked before request validation, so an unauthenticated
+invalid body returns 401, not 422. Rejected requests do not modify storage.
+OpenAPI declares HTTP bearer security and 401/403 examples on the five writes only.
+Restaurants have no stored owner yet, so any active restaurant owner may manage
+any restaurant.
+
+The frontend sends `sessionStorage["accessToken"]` as a bearer token when
+present and shows "Sign in as a restaurant owner or admin to make changes." on
+401/403. The sign-in UI that stores the token is #95.
+
+Verification: `python -m pytest tests/test_management_auth.py -q` covers 401/403
+on every write, owner/admin success, public reads and OpenAPI security; existing
+write tests use a seeded restaurant owner. Browser tests sign in through
+`/auth/login` and cover a rejected write before an authorized one.
+
 ### Profile and deactivation (#75)
 
 GET/PATCH `/customers/{customer_id}` and POST `/customers/{customer_id}/deactivate`
@@ -543,8 +570,8 @@ the same owner and active-customer checks as #82.
   404 `{"detail":"Cart not found"}`.
 - The product is looked up by ID and confirmed through `menu_service.get_menu_item`.
   Unknown products, and products whose restaurant no longer exists, return 404
-  `{"detail":"Menu item not found"}`. `is_available` must be `true`, otherwise 409
-  `{"detail":"Menu item is unavailable"}`.
+  `{"detail":"Menu item not found"}`. `is_available` must be `true` and the name
+  nonblank, otherwise 409 `{"detail":"Menu item is unavailable"}`.
 - Name, `unit_price` and `restaurant_id` come from the stored menu item. The first
   item sets the cart's `restaurant_id`; an item from another restaurant while the
   cart has items returns 409 `{"detail":"Cart contains items from another restaurant"}`.

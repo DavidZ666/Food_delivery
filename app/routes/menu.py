@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Path, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Response, status
 
 from app.core.api_contract import (
-    ITEM_CREATE, ITEM_READ, ITEM_PATCH, STORAGE_FAILURE,
+    ITEM_CREATE, ITEM_READ, ITEM_PATCH, MANAGEMENT_AUTH, STORAGE_FAILURE,
     json_response, resource_error, validation_example,
 )
+from app.core.auth import require_management
 from app.schemas.menu import MenuError, MenuItemRead, MenuItemCreate, MenuItemUpdate
 from app.services import menu_service
 
@@ -60,8 +61,9 @@ def get_menu_item(restaurant_id: RestaurantId, product_id: ProductId):
                 "Unknown fields and supplied IDs are ignored. "
                 "ID allocation and append use one serialized storage transaction. "
                 "Invalid stored product fields or IDs and storage failures return 500.",
+    dependencies=[Depends(require_management)],
     responses={201: json_response(ITEM_READ, "Created item with generated ID and restaurant ownership."),
-               404: resource_error(MenuError)},
+               404: resource_error(MenuError), **MANAGEMENT_AUTH},
     openapi_extra=validation_example(body=True),
 )
 def create_menu_item(restaurant_id: RestaurantId, body: Annotated[MenuItemCreate, Body(
@@ -82,7 +84,9 @@ def create_menu_item(restaurant_id: RestaurantId, body: Annotated[MenuItemCreate
                 "Empty or unknown-only objects are no-ops; IDs cannot be changed. "
                 "Price must be positive and finite. Updates use the shared storage "
                 "transaction. Invalid stored products and storage failures return 500.",
-    responses={200: json_response({**ITEM_READ, **ITEM_PATCH}), 404: resource_error(MenuError, item=True)},
+    dependencies=[Depends(require_management)],
+    responses={200: json_response({**ITEM_READ, **ITEM_PATCH}), 404: resource_error(MenuError, item=True),
+               **MANAGEMENT_AUTH},
     openapi_extra=validation_example(),
 )
 def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: Annotated[MenuItemUpdate, Body(
@@ -105,8 +109,9 @@ def update_menu_item(restaurant_id: RestaurantId, product_id: ProductId, body: A
     description="Remove an item owned by this restaurant. Return 204 with no body; "
                 "unknown resources return 404. Deletion uses the shared storage "
                 "transaction; invalid stored products and storage failures return 500.",
+    dependencies=[Depends(require_management)],
     responses={204: {"description": "Removed successfully. Empty response body."},
-               404: resource_error(MenuError, item=True)},
+               404: resource_error(MenuError, item=True), **MANAGEMENT_AUTH},
     openapi_extra=validation_example(),
 )
 def delete_menu_item(restaurant_id: RestaurantId, product_id: ProductId):
