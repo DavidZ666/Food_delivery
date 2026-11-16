@@ -218,7 +218,8 @@ button:disabled { opacity: 0.65; cursor: wait; }
 }
 
 /* Status and feedback */
-[role="status"]:empty { display: none; }
+/* Collapsed, not hidden: a live region must stay in the accessibility tree to announce updates. */
+[role="status"]:empty { margin: 0; padding: 0; border: 0; }
 [role="status"] { color: var(--muted); }
 [data-kind="error"], .field-error { color: var(--danger); }
 [data-kind="error"], [data-kind="success"] {
