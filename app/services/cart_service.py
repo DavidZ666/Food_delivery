@@ -61,7 +61,8 @@ def add_item(customer_id: int, item: CartItemAdd) -> CartRead:
     if cart_repo.get_by_customer_id(customer_id) is None:
         raise CartNotFoundError("Cart not found")
     product = _menu_item(item.product_id)
-    if product["is_available"] is not True:
+    # A blank name cannot form a cart line; the menu schema still allows one.
+    if product["is_available"] is not True or not product["name"].strip():
         raise MenuItemUnavailableError("Menu item is unavailable")
     line = {"product_id": product["product_id"], "name": product["name"],
             "unit_price": product["price"], "quantity": item.quantity}

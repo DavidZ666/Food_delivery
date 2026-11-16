@@ -458,8 +458,8 @@ the same owner and active-customer checks as #82.
   404 `{"detail":"Cart not found"}`.
 - The product is looked up by ID and confirmed through `menu_service.get_menu_item`.
   Unknown products, and products whose restaurant no longer exists, return 404
-  `{"detail":"Menu item not found"}`. `is_available` must be `true`, otherwise 409
-  `{"detail":"Menu item is unavailable"}`.
+  `{"detail":"Menu item not found"}`. `is_available` must be `true` and the name
+  nonblank, otherwise 409 `{"detail":"Menu item is unavailable"}`.
 - Name, `unit_price` and `restaurant_id` come from the stored menu item. The first
   item sets the cart's `restaurant_id`; an item from another restaurant while the
   cart has items returns 409 `{"detail":"Cart contains items from another restaurant"}`.
