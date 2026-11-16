@@ -169,7 +169,9 @@ Restaurant and menu writes serialize read/modify/write and atomically
 replace files using the shared transaction. Concurrent creation requests within
 one process allocate unique product IDs and preserve records; concurrent updates
 preserve changes to fields they omit. Deletions preserve concurrent creations and
-updates through the same lock. Atomic replacement alone is not a transaction.
+updates through the same lock. Reads take the same lock, so no read has the
+file open during a replacement, which Windows does not allow (#117). Atomic
+replacement alone is not a transaction.
 Use one application worker on a local filesystem, with no external writers.
 See [the JSON write decision](decisions/json-writes.md) for durability limits.
 
