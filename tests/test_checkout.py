@@ -129,10 +129,12 @@ def test_delivery_address_is_a_snapshot(http, accounts):
 
 # Revalidation and rejected checkouts
 
-@pytest.mark.parametrize("change", ["unavailable", "removed", "restaurant_deleted"])
+@pytest.mark.parametrize("change", ["unavailable", "blank_name", "removed", "restaurant_deleted"])
 def test_items_no_longer_orderable_are_409_without_changes(http, accounts, data_dir, change):
     if change == "unavailable":
         set_product(data_dir, 2, is_available=False)
+    elif change == "blank_name":
+        set_product(data_dir, 2, name=" ")
     elif change == "removed":
         products = [p for p in PRODUCTS if p["product_id"] != 2]
         (data_dir / "products.json").write_text(json.dumps(products), encoding="utf-8")
@@ -151,6 +153,14 @@ def test_item_moved_to_another_restaurant_is_409(http, accounts, data_dir):
     before = storage(data_dir)
     response = checkout(http, accounts["ada"])
     assert response.status_code == 409 and response.json() == {"detail": "Menu item is unavailable"}
+    assert storage(data_dir) == before
+
+
+def test_unrepresentable_total_is_422_without_changes(http, accounts, data_dir):
+    set_product(data_dir, 1, price=1e308)
+    before = storage(data_dir)
+    response = checkout(http, accounts["ada"])
+    assert response.status_code == 422 and response.json() == {"detail": "Cart total is too large"}
     assert storage(data_dir) == before
 
 
@@ -215,36 +225,6 @@ def test_malformed_orders_storage_is_500_without_changes(http, accounts, data_di
     before = storage(data_dir)
     assert checkout(http, accounts["ada"]).status_code == 500
     assert storage(data_dir) == before
-
-
-def test_cart_clear_failure_after_save_still_returns_the_order(http, accounts, data_dir, monkeypatch, caplog):
-    def fail(*args):
-        raise OSError("simulated cart write failure")
-
-    monkeypatch.setattr(cart_repo, "clear_if_unchanged", fail)
-    cart = cart_of(accounts["ada"])
-    with caplog.at_level("WARNING", logger="app.services.checkout_service"):
-        response = checkout(http, accounts["ada"])
-    assert response.status_code == 201
-    assert order_repo.list_all() == [response.json()]
-    assert cart_of(accounts["ada"]) == cart
-    # The kept cart must be visible to operators, not silently ignored.
-    assert any(f"order {response.json()['order_id']}" in record.getMessage() and record.levelname == "WARNING"
-               for record in caplog.records)
-
-
-def test_cart_changed_during_checkout_is_not_cleared(accounts, monkeypatch):
-    ada = accounts["ada"]
-    create = order_repo.create
-
-    def change_cart_then_save(fields):
-        add(ada["id"], 1, 1)  # a concurrent add lands between the snapshot and the clear
-        return create(fields)
-
-    monkeypatch.setattr(order_repo, "create", change_cart_then_save)
-    order = checkout_service.checkout(ada["id"])
-    assert [item.quantity for item in order.items] == [2, 3]
-    assert [item["quantity"] for item in cart_of(ada)["items"]] == [3, 3]
 
 
 def test_concurrent_checkouts_create_one_order(accounts):

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 
 from app.core.api_contract import STORAGE_FAILURE
 from app.core.auth import require_account_access, require_customer_owner
+from app.routes.cart import CART_TOTAL_RESPONSE
 from app.schemas.error import ErrorResponse
 from app.schemas.order import Order
 from app.services import cart_service, checkout_service, customer_service, order_service
@@ -28,13 +29,14 @@ ORDER_ERRORS = {
     description=(
         "Revalidate every cart item against the current menu, save a placed order "
         "snapshot at current names and prices with the customer's delivery address, "
-        "then clear the cart. Any failure before the order is saved leaves the cart "
-        "unchanged; the cart is cleared only if it did not change during checkout."
+        "and consume the cart in the same atomic write. A failed order write leaves "
+        "the cart unchanged. Edits to the same cart wait, then apply to the empty cart."
     ),
     responses={
         **ORDER_ERRORS,
         404: {"model": ErrorResponse, "description": "The customer has no cart."},
         409: {"model": ErrorResponse, "description": "The cart is empty, or an item is no longer on the menu, unavailable, or its restaurant no longer exists."},
+        422: CART_TOTAL_RESPONSE,
     },
 )
 def checkout(customer_id: CustomerId):
@@ -46,6 +48,8 @@ def checkout(customer_id: CustomerId):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (checkout_service.EmptyCartError, checkout_service.MenuItemUnavailableError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except cart_service.CartTotalError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 OrderId = Annotated[int, Path(gt=0, description="Stored order ID belonging to this customer.", examples=[1])]
