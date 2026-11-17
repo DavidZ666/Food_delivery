@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · ByteBites</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/sign-in.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html">Edit a restaurant</a>
+        <a href="account.html">Account</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <h1>Sign in</h1>
+    <p>New to ByteBites? <a href="register.html">Create an account</a>.</p>
+
+    <form id="sign-in-form" novalidate>
+      <div class="field">
+        <label for="field-email">Email <span aria-hidden="true">*</span></label>
+        <input id="field-email" name="email" type="email" autocomplete="username" required aria-describedby="error-email">
+        <p class="field-error" id="error-email" aria-live="polite"></p>
+      </div>
+      <div class="field">
+        <label for="field-password">Password <span aria-hidden="true">*</span></label>
+        <input id="field-password" name="password" type="password" autocomplete="current-password" required aria-describedby="error-password">
+        <p class="field-error" id="error-password" aria-live="polite"></p>
+      </div>
+
+      <button type="submit">Sign in</button>
+      <p id="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </main>
+</body>
+</html>

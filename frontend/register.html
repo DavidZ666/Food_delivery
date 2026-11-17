@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create an account · ByteBites</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/register.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html">Edit a restaurant</a>
+        <a href="account.html">Account</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <h1>Create an account</h1>
+    <p>All fields are required. Already registered? <a href="sign-in.html">Sign in</a>.</p>
+
+    <form id="register-form" novalidate>
+      <fieldset>
+        <legend>Your details</legend>
+        <div class="field">
+          <label for="field-name">Name <span aria-hidden="true">*</span></label>
+          <input id="field-name" name="name" type="text" autocomplete="name" required aria-describedby="error-name">
+          <p class="field-error" id="error-name" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-phone">Phone <span aria-hidden="true">*</span></label>
+          <input id="field-phone" name="phone" type="tel" autocomplete="tel" required aria-describedby="error-phone">
+          <p class="field-error" id="error-phone" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-email">Email <span aria-hidden="true">*</span></label>
+          <input id="field-email" name="email" type="email" autocomplete="email" required aria-describedby="error-email">
+          <p class="field-error" id="error-email" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-password">Password <span aria-hidden="true">*</span></label>
+          <input id="field-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="hint-password error-password">
+          <p class="hint" id="hint-password">At least 8 characters.</p>
+          <p class="field-error" id="error-password" aria-live="polite"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Delivery address</legend>
+        <div class="field">
+          <label for="field-delivery_address-address">Address <span aria-hidden="true">*</span></label>
+          <input id="field-delivery_address-address" name="delivery_address.address" type="text" autocomplete="street-address" required aria-describedby="error-delivery_address.address">
+          <p class="field-error" id="error-delivery_address.address" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-delivery_address-city">City <span aria-hidden="true">*</span></label>
+          <input id="field-delivery_address-city" name="delivery_address.city" type="text" autocomplete="address-level2" required aria-describedby="error-delivery_address.city">
+          <p class="field-error" id="error-delivery_address.city" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-delivery_address-province">Province <span aria-hidden="true">*</span></label>
+          <input id="field-delivery_address-province" name="delivery_address.province" type="text" autocomplete="address-level1" required aria-describedby="error-delivery_address.province">
+          <p class="field-error" id="error-delivery_address.province" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="field-delivery_address-postal_code">Postal code <span aria-hidden="true">*</span></label>
+          <input id="field-delivery_address-postal_code" name="delivery_address.postal_code" type="text" autocomplete="postal-code" required aria-describedby="error-delivery_address.postal_code">
+          <p class="field-error" id="error-delivery_address.postal_code" aria-live="polite"></p>
+        </div>
+      </fieldset>
+
+      <button type="submit">Create account</button>
+      <p id="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </main>
+</body>
+</html>
