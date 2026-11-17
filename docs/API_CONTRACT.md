@@ -527,6 +527,9 @@ OpenAPI declares HTTP bearer security and 401/403 examples on the five writes on
 Restaurants have no stored owner yet, so any active restaurant owner may manage
 any restaurant.
 
+No API route assigns roles. `python -m scripts.set_role EMAIL ROLE` (#123) sets
+the role of a registered account locally; run it with the server stopped.
+
 The frontend sends `sessionStorage["accessToken"]` as a bearer token when
 present and shows "Sign in as a restaurant owner or admin to make changes." on
 401/403. The sign-in UI that stores the token is #95.

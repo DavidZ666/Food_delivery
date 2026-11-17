@@ -49,6 +49,18 @@ The application runs at http://127.0.0.1:8000.
 
 Press Ctrl+C in the terminal to stop the server.
 
+### Management accounts
+
+Registration only creates customers, and restaurant and menu writes need a
+restaurant owner or admin. Register an account, stop the server, then set its
+role (`customer`, `restaurant_owner` or `admin`):
+
+```bash
+python -m scripts.set_role ada@example.com restaurant_owner
+```
+
+The role is stored in `data/customers.json` and applies from the next request.
+
 ## Frontend
 
 The frontend is in `frontend/` and gets served by the same FastAPI server, so

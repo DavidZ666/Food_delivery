@@ -1,5 +1,17 @@
 # AI Use and Provenance
 
+## Role command (#123)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude.
+- Artifacts: `scripts/set_role.py`, `customer_repo.set_role`,
+  `tests/test_set_role.py`, README and API contract.
+- Purpose and influence: management writes need a restaurant owner or admin,
+  but registration only creates customers. The command sets the role of a
+  registered account, so no credential is committed.
+- Validation: 966 Python tests passed in strict-encoding mode;
+  representative data unchanged.
+
 ## Locale-independent test text I/O (#69)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
