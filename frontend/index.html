@@ -7,37 +7,44 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header>
-    <nav>
-      <a href="./">ByteBites</a>
-      <a href="create-restaurant.html">Create a restaurant</a>
-      <a href="edit-restaurant.html">Edit a restaurant</a>
-    </nav>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./" aria-current="page">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html">Edit a restaurant</a>
+      </nav>
+    </div>
   </header>
 
-  <main>
-    <h1>Find a restaurant</h1>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-heading">
+      <h1 id="hero-heading">Find a restaurant</h1>
+      <p class="lede">Search local restaurants by name or cuisine, then open a menu to see what is available today.</p>
 
-    <form id="restaurant-search">
-      <div>
-        <label for="name">Restaurant name</label>
-        <input
-          id="name"
-          name="name"
-          type="search"
-          placeholder="Search restaurants"
-        >
-      </div>
+      <form id="restaurant-search">
+        <div>
+          <label for="name">Restaurant name</label>
+          <input
+            id="name"
+            name="name"
+            type="search"
+            placeholder="Search restaurants"
+          >
+        </div>
 
-      <div>
-        <label for="cuisine">Cuisine</label>
-        <select id="cuisine" name="cuisine">
-          <option value="">All cuisines</option>
-        </select>
-      </div>
+        <div>
+          <label for="cuisine">Cuisine</label>
+          <select id="cuisine" name="cuisine">
+            <option value="">All cuisines</option>
+          </select>
+        </div>
 
-      <button type="submit">Search</button>
-    </form>
+        <button type="submit">Search</button>
+      </form>
+    </section>
 
     <p id="restaurant-status" role="status" aria-live="polite"></p>
 

@@ -8,10 +8,18 @@
   <script type="module" src="js/edit-restaurant.js"></script>
 </head>
 <body>
-  <header>
-    <nav><a href="./">ByteBites</a></nav>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html" aria-current="page">Edit a restaurant</a>
+      </nav>
+    </div>
   </header>
-  <main>
+  <main id="main">
     <h1>Edit a restaurant</h1>
 
     <div class="field">
