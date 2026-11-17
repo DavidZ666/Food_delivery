@@ -31,7 +31,7 @@ def test_name_search(client, data_dir, query, ids):
 
 def test_unicode_and_literal_punctuation(client, data_dir):
     records = [dict(SAMPLE_RESTAURANTS[0], name='Straße (Café)')]
-    (data_dir / 'restaurants.json').write_text(json.dumps(records))
+    (data_dir / 'restaurants.json').write_text(json.dumps(records), encoding='utf-8')
     for query in ['STRASSE', '(CAFÉ)']:
         response = client.get('/restaurants', params={'name': query})
         assert response.status_code == 200
@@ -39,7 +39,7 @@ def test_unicode_and_literal_punctuation(client, data_dir):
 
 
 def test_empty_storage(client, data_dir):
-    (data_dir / 'restaurants.json').write_text('[]')
+    (data_dir / 'restaurants.json').write_text('[]', encoding='utf-8')
     response = client.get('/restaurants', params={'name': 'Test'})
     assert response.status_code == 200
     assert response.json() == []
@@ -73,7 +73,7 @@ def test_storage_failure_is_not_a_no_match(client, data_dir, failure):
         path.rename(data_dir / 'restaurants.backup.json')
         error = FileNotFoundError
     else:
-        path.write_text('{invalid')
+        path.write_text('{invalid', encoding='utf-8')
         error = json.JSONDecodeError
     with pytest.raises(error):
         client.get('/restaurants', params={'name': 'missing'})

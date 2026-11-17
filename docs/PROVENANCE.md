@@ -1,5 +1,48 @@
 # AI Use and Provenance
 
+## Account UI (#95)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude.
+- Artifacts: `frontend/register.html`, `sign-in.html`, `account.html` and their
+  scripts, `js/session.js`, `js/account-form.js`, 401/403 handling in
+  `js/api.js`, the Account navigation link, button styles, and the node,
+  pytest and browser tests for them; README and API contract.
+- Purpose and influence: the customer workflow had no way to register, sign in
+  or edit a profile from the browser. Pages reuse the existing request helper,
+  field-error display and design tokens.
+- Validation: 986 Python tests passed in strict-encoding mode, 60 frontend
+  tests and 23 browser tests passed; representative data unchanged.
+- References: [autocomplete values](https://developer.mozilla.org/docs/Web/HTML/Attributes/autocomplete),
+  [sessionStorage](https://developer.mozilla.org/docs/Web/API/Window/sessionStorage).
+
+## Role command (#123)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude.
+- Artifacts: `scripts/set_role.py`, `customer_repo.set_role`,
+  `tests/test_set_role.py`, README and API contract.
+- Purpose and influence: management writes need a restaurant owner or admin,
+  but registration only creates customers. The command sets the role of a
+  registered account, so no credential is committed.
+- Validation: 966 Python tests passed in strict-encoding mode;
+  representative data unchanged.
+
+## Locale-independent test text I/O (#69)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Opus.
+- Artifacts: explicit UTF-8 test file/subprocess I/O, `pytest.ini`, CI and README.
+- Purpose and influence: storage writes UTF-8 but tests read with the locale
+  default, so `Updated Café` decoded as mojibake on cp936/cp1252 Windows.
+  PEP 597 `EncodingWarning`s are now errors in CI to prevent recurrence.
+- TDD: the target test failed under cp936; with `PYTHONWARNDEFAULTENCODING=1`
+  the suite produced 7 failures and 426 errors, then passed after the fix.
+- Validation: 521 Python tests passed with one Windows skip in default, UTF-8
+  and strict-encoding modes; representative data unchanged.
+- References: [PEP 597](https://peps.python.org/pep-0597/),
+  [opt-in EncodingWarning](https://docs.python.org/3/library/io.html#io-encoding-warning).
+
 ## PR #112 accessibility review
 
 - Label: AI-GENERATED; AI tool: OpenAI Codex.

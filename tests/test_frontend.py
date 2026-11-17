@@ -4,11 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from app.repositories import restaurant_repo
+from app.core import customer_auth
+from app.repositories import customer_repo, restaurant_repo
 
 CASES_DIR = Path(__file__).parent / "frontend"
 FORM_CASES = json.loads((CASES_DIR / "create-form-cases.json").read_text(encoding="utf-8"))
 UPDATE_CASES = json.loads((CASES_DIR / "update-form-cases.json").read_text(encoding="utf-8"))
+ACCOUNT_CASES = json.loads((CASES_DIR / "account-form-cases.json").read_text(encoding="utf-8"))
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
@@ -88,6 +90,7 @@ def test_home_page_links_to_management_forms(client):
     links = parse(response.text).links
     assert "create-restaurant.html" in links
     assert "edit-restaurant.html" in links
+    assert "account.html" in links
 
 
 @pytest.mark.parametrize("path,content_type", [
@@ -98,6 +101,14 @@ def test_home_page_links_to_management_forms(client):
     ("/app/js/create-restaurant.js", "text/javascript"),
     ("/app/js/edit-restaurant.js", "text/javascript"),
     ("/app/js/form-ui.js", "text/javascript"),
+    ("/app/register.html", "text/html"),
+    ("/app/sign-in.html", "text/html"),
+    ("/app/account.html", "text/html"),
+    ("/app/js/session.js", "text/javascript"),
+    ("/app/js/account-form.js", "text/javascript"),
+    ("/app/js/register.js", "text/javascript"),
+    ("/app/js/sign-in.js", "text/javascript"),
+    ("/app/js/account.js", "text/javascript"),
     ("/app/css/styles.css", "text/css"),
 ])
 def test_frontend_assets_are_served(client, path, content_type):
@@ -154,7 +165,7 @@ def test_edit_form_fields_match_api_update_schema(client):
 )
 def test_update_payloads_save_the_form_values(client, data_dir, case):
     # node tests check toUpdatePayload builds these same bodies
-    (data_dir / "restaurants.json").write_text(json.dumps([case["original"]]))
+    (data_dir / "restaurants.json").write_text(json.dumps([case["original"]]), encoding="utf-8")
     response = client.patch(f"/restaurants/{case['original']['id']}", json=case["payload"])
     assert response.status_code == 200
     expected = {field: value.strip() for field, value in case["values"].items()}
@@ -168,3 +179,63 @@ def test_unchanged_form_is_not_sent_because_api_rejects_empty_updates(client, da
     original = path.read_bytes()
     assert client.patch("/restaurants/101", json={}).status_code == 422
     assert path.read_bytes() == original
+
+
+@pytest.mark.parametrize("page_name,schema,script", [
+    ("register.html", "CustomerCreate", "js/register.js"),
+    ("sign-in.html", "LoginRequest", "js/sign-in.js"),
+    ("account.html", "CustomerUpdate", "js/account.js"),
+])
+def test_account_form_fields_match_api_schemas(client, page_name, schema, script):
+    page = parse(client.get(f"/app/{page_name}").text)
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+    # none of these fields can be blank or cleared, so the forms require them all
+    assert page.fields == dict.fromkeys(schema_fields(schemas, schema), True)
+    assert script in page.scripts
+    assert {"sign-in.html", "register.html"} - {page_name} <= set(page.links)
+
+
+@pytest.mark.parametrize(
+    "case", ACCOUNT_CASES["registration"], ids=[case["name"] for case in ACCOUNT_CASES["registration"]],
+)
+def test_registration_payloads_create_accounts_that_can_sign_in(anonymous_client, case):
+    # node tests check toRegistrationPayload builds these same bodies
+    payload = case["payload"]
+    response = anonymous_client.post("/customers", json=payload)
+    assert response.status_code == 201
+    expected = {key: value for key, value in payload.items() if key != "password"}
+    expected["email"] = payload["email"].lower()
+    assert {key: response.json()[key] for key in expected} == expected
+    login = anonymous_client.post("/auth/login", json={"email": payload["email"], "password": payload["password"]})
+    assert login.status_code == 200
+    assert login.json()["customer"] == response.json()
+
+
+def profile_values(customer):
+    # python version of customerToValues in account-form.js
+    values = {"name": customer["name"], "phone": customer["phone"]}
+    values.update({f"delivery_address.{field}": value for field, value in customer["delivery_address"].items()})
+    return values
+
+
+@pytest.mark.parametrize(
+    "case", ACCOUNT_CASES["profile"], ids=[case["name"] for case in ACCOUNT_CASES["profile"]],
+)
+def test_profile_payloads_save_the_form_values(anonymous_client, data_dir, case):
+    # node tests check toProfileUpdatePayload builds these same bodies
+    original = case["original"]
+    path = data_dir / "customers.json"
+    records = [*json.loads(path.read_text(encoding="utf-8")),
+               {**original, "password_hash": customer_auth.hash_password("example-password")}]
+    path.write_text(json.dumps(records), encoding="utf-8")
+    headers = {"Authorization": f"Bearer {customer_auth.issue_token(original['id'])}"}
+    response = anonymous_client.patch(f"/customers/{original['id']}", json=case["payload"], headers=headers)
+    if not case["payload"]:
+        # the form does not send an unchanged profile because the API rejects empty updates
+        assert response.status_code == 422
+        assert json.loads(path.read_text(encoding="utf-8")) == records
+        return
+    assert response.status_code == 200
+    expected = {field: value.strip() for field, value in case["values"].items()}
+    assert profile_values(response.json()) == expected
+    assert profile_values(customer_repo.get_by_id(original["id"])) == expected

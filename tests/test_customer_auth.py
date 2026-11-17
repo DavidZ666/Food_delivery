@@ -99,7 +99,7 @@ def test_registration_validation(storage, client, change):
     body = {**REGISTRATION, **change}
     response = client.post("/customers", json=body)
     assert response.status_code == 422
-    assert storage.read_text() == "[]"
+    assert storage.read_text(encoding="utf-8") == "[]"
     assert body["password"] not in response.text
     assert all("input" not in error for error in response.json()["detail"])
 
@@ -152,7 +152,7 @@ def test_api_storage_errors(storage, content, path, body):
     with TestClient(app, raise_server_exceptions=False) as client:
         response = client.post(path, json=body)
     assert response.status_code == 500 and response.text == "Internal Server Error"
-    assert not storage.exists() if content is None else storage.read_text() == content
+    assert not storage.exists() if content is None else storage.read_text(encoding="utf-8") == content
     assert not customer_auth._sessions
 
 
@@ -231,7 +231,7 @@ with TestClient(app) as client:
     result = subprocess.run(
         [sys.executable, "-c", script], input=json.dumps([LOGIN, old_token]),
         text=True, capture_output=True, check=True,
-        env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(storage.parent)},
+        env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(storage.parent)}, encoding="utf-8",
     )
     assert json.loads(result.stdout) == customer
 

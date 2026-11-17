@@ -34,7 +34,7 @@ def test_restaurants_have_expected_fields(client):
         
 
 def test_rejects_if_missing_required_field(client, data_dir):
-    (data_dir / "restaurants.json").write_text(json.dumps([{"id": 1}]))
+    (data_dir / "restaurants.json").write_text(json.dumps([{"id": 1}]), encoding="utf-8")
 
     with pytest.raises(ResponseValidationError):
         client.get("/restaurants")

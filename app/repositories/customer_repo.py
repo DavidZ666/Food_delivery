@@ -84,3 +84,19 @@ def update_by_id(customer_id: int, changes: dict) -> dict:
         raise CustomerRecordNotFoundError("Customer not found")
 
     return update_json(_path(), apply)
+
+
+def set_role(email: str, role: str) -> dict:
+    """Set a registered account's role; used by `scripts/set_role.py`, not the API."""
+    email = email.strip().lower()
+
+    def apply(records):
+        _validate_records(records)
+        for index, record in enumerate(records):
+            if record["email"].strip().lower() == email:
+                updated = {**record, "role": role}
+                CustomerRecord.model_validate(updated, strict=True)
+                return [*records[:index], updated, *records[index + 1:]], updated
+        raise CustomerRecordNotFoundError("Customer not found")
+
+    return update_json(_path(), apply)

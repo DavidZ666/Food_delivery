@@ -31,7 +31,7 @@ def test_unknown_restaurant_returns_404(client):
 
 
 def test_empty_collection_returns_404(client, data_dir):
-    (data_dir / "restaurants.json").write_text("[]")
+    (data_dir / "restaurants.json").write_text("[]", encoding="utf-8")
 
     response = client.get("/restaurants/101")
 
@@ -48,7 +48,7 @@ def test_invalid_id_returns_422(client, invalid_id):
 
 
 def test_detail_rejects_invalid_stored_record(client, data_dir):
-    (data_dir / "restaurants.json").write_text(json.dumps([{"id": 101}]))
+    (data_dir / "restaurants.json").write_text(json.dumps([{"id": 101}]), encoding="utf-8")
 
     with pytest.raises(ResponseValidationError):
         client.get("/restaurants/101")
@@ -60,7 +60,7 @@ def test_repository_looks_up_stored_id(data_dir):
 
 
 def test_storage_failure_is_not_reported_as_missing_restaurant(data_dir):
-    (data_dir / "restaurants.json").write_text("invalid json")
+    (data_dir / "restaurants.json").write_text("invalid json", encoding="utf-8")
 
     with pytest.raises(json.JSONDecodeError):
         restaurant_service.get_restaurant(101)

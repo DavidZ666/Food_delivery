@@ -64,8 +64,8 @@ def manager_headers(monkeypatch):
 @pytest.fixture
 def data_dir(tmp_path, monkeypatch, manager_headers):
     """Point the app at a temporary data folder with sample restaurants and a manager."""
-    (tmp_path / "restaurants.json").write_text(json.dumps(SAMPLE_RESTAURANTS))
-    (tmp_path / "customers.json").write_text(json.dumps([MANAGER]))
+    (tmp_path / "restaurants.json").write_text(json.dumps(SAMPLE_RESTAURANTS), encoding="utf-8")
+    (tmp_path / "customers.json").write_text(json.dumps([MANAGER]), encoding="utf-8")
     monkeypatch.setenv("FOOD_DELIVERY_DATA_DIR", str(tmp_path))
     return tmp_path
 

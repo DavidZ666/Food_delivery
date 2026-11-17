@@ -17,6 +17,17 @@ const MANAGER = {
   role: "restaurant_owner", is_active: true,
 };
 
+export const MANAGER_CREDENTIALS = { email: MANAGER.email, password: "manager-test-password" };
+
+// Sign in through the UI (#95); lands on the account page.
+export async function signInThroughUi(page, app, { email, password }) {
+  await page.goto(`${app.url}/app/sign-in.html`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.locator("#account-email")).toHaveText(email);
+}
+
 export const test = base.extend({
   app: async ({}, use) => {
     const root = process.cwd();
@@ -60,7 +71,7 @@ export const test = base.extend({
       const signIn = async () => {
         const response = await fetch(`${url}/auth/login`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: MANAGER.email, password: "manager-test-password" }),
+          body: JSON.stringify(MANAGER_CREDENTIALS),
         });
         assert.equal(response.status, 200);
         return (await response.json()).access_token;

@@ -152,7 +152,7 @@ def test_ids_are_stable_across_processes(storage):
     )
     result = subprocess.run(
         [sys.executable, "-c", script], capture_output=True, text=True, check=True,
-        env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(storage.parent)},
+        env={**os.environ, "FOOD_DELIVERY_DATA_DIR": str(storage.parent)}, encoding="utf-8",
     )
 
     assert result.stdout.strip() == "2"
