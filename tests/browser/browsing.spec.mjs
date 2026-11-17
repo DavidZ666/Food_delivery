@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures.mjs";
+import { test, expect, signInThroughUi, MANAGER_CREDENTIALS } from "./fixtures.mjs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -194,20 +194,24 @@ test("unavailable items stay visible; API-created and updated items survive rest
 });
 
 test("UI restaurant creation and editing persist across an actual server restart", async ({ page, app }) => {
+  const create = page.getByRole("button", { name: "Create restaurant", exact: true });
+  const fill = async () => {
+    for (const [name, value] of Object.entries({ name: "Browser Café", cuisine: "Fusion",
+      "location.address": "5 Main St", "location.city": "Kelowna",
+      "location.province": "BC", "location.postal_code": "V1V 1V1" })) {
+      await page.locator(`[name="${name}"]`).fill(value);
+    }
+  };
   await page.goto(`${app.url}/app/create-restaurant.html`);
-  await page.getByRole("button", { name: "Create restaurant", exact: true }).click();
+  await create.click();
   await expect(page.locator("#form-status")).toContainText("Please fix");
-  for (const [name, value] of Object.entries({ name: "Browser Café", cuisine: "Fusion",
-    "location.address": "5 Main St", "location.city": "Kelowna",
-    "location.province": "BC", "location.postal_code": "V1V 1V1" })) {
-    await page.locator(`[name="${name}"]`).fill(value);
-  }
-  await page.getByRole("button", { name: "Create restaurant", exact: true }).click();
-  await expect(page.locator("#form-status")).toHaveText("Sign in as a restaurant owner or admin to make changes.");
-  // No sign-in UI until #95: store the session token the way it will.
-  const token = await app.signIn();
-  await page.evaluate((value) => sessionStorage.setItem("accessToken", value), token);
-  await page.getByRole("button", { name: "Create restaurant", exact: true }).click();
+  await fill();
+  await create.click();
+  await expect(page.locator("#form-status")).toHaveText("Sign in to continue.");
+  await signInThroughUi(page, app, MANAGER_CREDENTIALS);
+  await page.goto(`${app.url}/app/create-restaurant.html`);
+  await fill();
+  await create.click();
   await expect(page.locator("#form-status")).toContainText('Created "Browser Café"');
   await page.getByRole("link", { name: "Edit this restaurant" }).click();
   await expect(page.locator('[name="name"]')).toHaveValue("Browser Café");

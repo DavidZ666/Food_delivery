@@ -49,6 +49,18 @@ The application runs at http://127.0.0.1:8000.
 
 Press Ctrl+C in the terminal to stop the server.
 
+### Management accounts
+
+Registration only creates customers, and restaurant and menu writes need a
+restaurant owner or admin. Register an account, stop the server, then set its
+role (`customer`, `restaurant_owner` or `admin`):
+
+```bash
+python -m scripts.set_role ada@example.com restaurant_owner
+```
+
+The role is stored in `data/customers.json` and applies from the next request.
+
 ## Frontend
 
 The frontend is in `frontend/` and gets served by the same FastAPI server, so
@@ -77,6 +89,9 @@ and mobile layout from 320px.
 | Restaurant details and menu | /app/restaurant.html?id=1 | Restaurant details and menu GET endpoints |
 | Menu item details | /app/menu-item.html?restaurantId=1&productId=1 | Selected restaurant/item GET endpoint |
 | Edit a restaurant | /app/edit-restaurant.html?id={restaurant_id} | `GET /restaurants`, `GET` + `PATCH /restaurants/{restaurant_id}` |
+| Create an account | /app/register.html | `POST /customers` |
+| Sign in | /app/sign-in.html | `POST /auth/login` |
+| Account | /app/account.html | `GET` + `PATCH /customers/{customer_id}`, `POST /customers/{customer_id}/deactivate` |
 
 **Create form:** checks the required fields first, then sends the request. If
 the API sends back a 422 the errors show up next to the fields they belong to.
@@ -90,10 +105,20 @@ sends `null` so it gets removed. Required fields can't be blank, and if you
 didn't change anything it just says so and doesn't send anything. Unknown IDs
 and errors are shown without wiping what you typed.
 
+**Accounts (#95):** register, then sign in. The session token is kept in
+`sessionStorage` (it ends when the tab closes or the server restarts) and is
+sent as a bearer token on every request, including the restaurant forms. The
+account page loads the profile from the API, sends only the changed fields,
+and can sign out or deactivate the account after a confirmation. A 401 clears
+the stored session and asks you to sign in again; a 403 says the account is not
+allowed to do that.
+
 The JS is split up so most of it can be tested:
 - `js/api.js` makes the requests and turns errors into an `ApiError`
 - `js/restaurant-form.js` has the validation and builds the request bodies (no DOM code, so the node tests can use it)
 - `js/form-ui.js` shows status messages and field errors
+- `js/session.js` stores the signed-in session
+- `js/account-form.js` has the account validation and request bodies (no DOM code)
 
 ## API Endpoints
 

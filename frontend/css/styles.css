@@ -212,6 +212,12 @@ button {
 button:hover { background: color-mix(in srgb, var(--accent) 85%, var(--ink)); }
 button:disabled { opacity: 0.65; cursor: wait; }
 
+/* Secondary and destructive actions stay quieter than the one primary button. */
+.button-quiet, .button-quiet:hover { color: var(--ink); background: var(--surface); border: 2px solid var(--ink); }
+.button-danger, .button-danger:hover { color: var(--danger); background: var(--surface); border: 2px solid var(--danger); }
+.button-quiet:hover, .button-danger:hover { background: var(--paper); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
 [aria-invalid="true"] {
   border-color: var(--danger);
   background: color-mix(in srgb, var(--danger) 6%, var(--surface));
@@ -231,6 +237,7 @@ button:disabled { opacity: 0.65; cursor: wait; }
 [data-kind="success"] { color: var(--success); }
 .field-error { margin: 0.3rem 0 0; font-size: var(--step--1); font-weight: 600; }
 .field-error:empty { display: none; }
+.hint { margin: 0.3rem 0 0; font-size: var(--step--1); color: var(--muted); }
 
 /* Restaurant and menu lists: rows on rules, not boxed cards. */
 #restaurant-list, #menu-list {
@@ -284,6 +291,9 @@ legend { font-size: var(--step-1); font-weight: 700; padding: 0; margin-bottom: 
 .field { margin-bottom: var(--space-2); min-width: 0; }
 .field:has(textarea), .field:has([type="url"]) { grid-column: 1 / -1; }
 #editing-heading { margin-top: var(--space-4); }
+#sign-in-form { max-width: 26rem; }
+#sign-in-form button { margin-top: var(--space-1); }
+.account-actions { margin-top: var(--space-5); padding-top: var(--space-3); border-top: 1px solid var(--line); max-width: var(--measure); }
 .field label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
 .field label span { color: var(--accent); }
 
