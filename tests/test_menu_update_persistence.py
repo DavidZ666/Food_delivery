@@ -60,11 +60,11 @@ def storage_bytes(data_dir):
     {},
     {"product_id": 99, "restaurant_id": 102, "unknown": "ignored"},
 ], ids=["all-fields", "partial", "empty-noop", "immutable-ids"])
-def test_update_survives_a_fresh_process(data_dir, menu_store, changes):
+def test_update_survives_a_fresh_process(manager_headers, data_dir, menu_store, changes):
     restaurants_before = (data_dir / "restaurants.json").read_bytes()
     expected = {**menu_store[0], **{key: value for key, value in changes.items()
                                  if key in CHANGES}}
-    with TestClient(app) as http:
+    with TestClient(app, headers=manager_headers) as http:
         response = http.patch("/restaurants/101/menu/8", json=changes)
         assert response.status_code == 200
         assert response.json() == expected
@@ -116,7 +116,7 @@ def test_rejected_update_preserves_both_stores(client, data_dir, menu_store,
 
 
 @pytest.mark.parametrize("stage", ["temporary-file", "serialization", "sync", "replacement"])
-def test_failed_update_preserves_data_and_allows_retry(data_dir, menu_store,
+def test_failed_update_preserves_data_and_allows_retry(manager_headers, data_dir, menu_store,
                                                       monkeypatch, stage):
     before = storage_bytes(data_dir)
     calls = []
@@ -133,7 +133,7 @@ def test_failed_update_preserves_data_and_allows_retry(data_dir, menu_store,
         "sync": (json_store.os, "fsync"),
         "replacement": (json_store.os, "replace"),
     }[stage]
-    with TestClient(app, raise_server_exceptions=False) as http:
+    with TestClient(app, raise_server_exceptions=False, headers=manager_headers) as http:
         with monkeypatch.context() as patch:
             patch.setattr(target, attribute, fail)
             response = http.patch("/restaurants/101/menu/8", json=CHANGES)
