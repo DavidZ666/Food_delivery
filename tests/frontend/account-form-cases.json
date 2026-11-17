@@ -1,0 +1,174 @@
+{
+  "registration": [
+    {
+      "name": "trims text but not the password",
+      "values": {
+        "name": "  Ada Lovelace ",
+        "phone": "250-555-0101",
+        "delivery_address.address": "2 Main St",
+        "delivery_address.city": " Kelowna ",
+        "delivery_address.province": "BC",
+        "delivery_address.postal_code": "V1V 1V2",
+        "email": " Ada@Example.com ",
+        "password": "  spaced password  "
+      },
+      "payload": {
+        "name": "Ada Lovelace",
+        "email": "Ada@Example.com",
+        "password": "  spaced password  ",
+        "phone": "250-555-0101",
+        "delivery_address": {
+          "address": "2 Main St",
+          "city": "Kelowna",
+          "province": "BC",
+          "postal_code": "V1V 1V2"
+        }
+      }
+    },
+    {
+      "name": "shortest password and accented text",
+      "values": {
+        "name": "Zoë Café",
+        "phone": "250-555-0101",
+        "delivery_address.address": "2 Main St",
+        "delivery_address.city": "Montréal",
+        "delivery_address.province": "QC",
+        "delivery_address.postal_code": "V1V 1V2",
+        "email": "zoe@example.com",
+        "password": "12345678"
+      },
+      "payload": {
+        "name": "Zoë Café",
+        "email": "zoe@example.com",
+        "password": "12345678",
+        "phone": "250-555-0101",
+        "delivery_address": {
+          "address": "2 Main St",
+          "city": "Montréal",
+          "province": "QC",
+          "postal_code": "V1V 1V2"
+        }
+      }
+    }
+  ],
+  "profile": [
+    {
+      "name": "change phone only",
+      "original": {
+        "id": 2,
+        "name": "Ada Lovelace",
+        "email": "ada@example.com",
+        "phone": "250-555-0101",
+        "delivery_address": {
+          "address": "2 Main St",
+          "city": "Kelowna",
+          "province": "BC",
+          "postal_code": "V1V 1V2"
+        },
+        "role": "customer",
+        "is_active": true
+      },
+      "values": {
+        "name": "Ada Lovelace",
+        "phone": " 250-555-0199 ",
+        "delivery_address.address": "2 Main St",
+        "delivery_address.city": "Kelowna",
+        "delivery_address.province": "BC",
+        "delivery_address.postal_code": "V1V 1V2"
+      },
+      "payload": {
+        "phone": "250-555-0199"
+      }
+    },
+    {
+      "name": "change name and one address field",
+      "original": {
+        "id": 2,
+        "name": "Ada Lovelace",
+        "email": "ada@example.com",
+        "phone": "250-555-0101",
+        "delivery_address": {
+          "address": "2 Main St",
+          "city": "Kelowna",
+          "province": "BC",
+          "postal_code": "V1V 1V2"
+        },
+        "role": "customer",
+        "is_active": true
+      },
+      "values": {
+        "name": "Ada King",
+        "phone": "250-555-0101",
+        "delivery_address.address": "2 Main St",
+        "delivery_address.city": "Kelowna",
+        "delivery_address.province": "BC",
+        "delivery_address.postal_code": "V1V 9Z9"
+      },
+      "payload": {
+        "name": "Ada King",
+        "delivery_address": {
+          "postal_code": "V1V 9Z9"
+        }
+      }
+    },
+    {
+      "name": "replace the whole address",
+      "original": {
+        "id": 2,
+        "name": "Ada Lovelace",
+        "email": "ada@example.com",
+        "phone": "250-555-0101",
+        "delivery_address": {
+          "address": "2 Main St",
+          "city": "Kelowna",
+          "province": "BC",
+          "postal_code": "V1V 1V2"
+        },
+        "role": "customer",
+        "is_active": true
+      },
+      "values": {
+        "name": "Ada Lovelace",
+        "phone": "250-555-0101",
+        "delivery_address.address": "9 Lake Rd",
+        "delivery_address.city": "Vernon",
+        "delivery_address.province": "AB",
+        "delivery_address.postal_code": "T1T 1T1"
+      },
+      "payload": {
+        "delivery_address": {
+          "address": "9 Lake Rd",
+          "city": "Vernon",
+          "province": "AB",
+          "postal_code": "T1T 1T1"
+        }
+      }
+    },
+    {
+      "name": "whitespace-only differences are not changes",
+      "original": {
+        "id": 2,
+        "name": "Ada Lovelace",
+        "email": "ada@example.com",
+        "phone": "250-555-0101",
+        "delivery_address": {
+          "address": "2 Main St",
+          "city": "Kelowna",
+          "province": "BC",
+          "postal_code": "V1V 1V2"
+        },
+        "role": "customer",
+        "is_active": true
+      },
+      "values": {
+        "name": " Ada Lovelace  ",
+        "phone": "250-555-0101",
+        "delivery_address.address": "2 Main St",
+        "delivery_address.city": "Kelowna",
+        "delivery_address.province": "BC",
+        "delivery_address.postal_code": "V1V 1V2"
+      },
+      "payload": {}
+    }
+  ]
+}

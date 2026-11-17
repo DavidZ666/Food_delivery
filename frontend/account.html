@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your account · ByteBites</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/account.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-header__inner">
+      <a class="brand" href="./">ByteBites</a>
+      <nav aria-label="Primary">
+        <a href="./">Restaurants</a>
+        <a href="create-restaurant.html">Create a restaurant</a>
+        <a href="edit-restaurant.html">Edit a restaurant</a>
+        <a href="account.html" aria-current="page">Account</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <h1>Your account</h1>
+    <p id="account-status" role="status" aria-live="polite"></p>
+
+    <section id="signed-out" hidden>
+      <p><a href="sign-in.html">Sign in</a> to see your profile and delivery address, or <a href="register.html">create an account</a>.</p>
+    </section>
+
+    <section id="account" hidden>
+      <p>Signed in as <strong id="account-email"></strong>.</p>
+
+      <form id="profile-form" novalidate>
+        <fieldset>
+          <legend>Profile</legend>
+          <div class="field">
+            <label for="field-name">Name <span aria-hidden="true">*</span></label>
+            <input id="field-name" name="name" type="text" autocomplete="name" required aria-describedby="error-name">
+            <p class="field-error" id="error-name" aria-live="polite"></p>
+          </div>
+          <div class="field">
+            <label for="field-phone">Phone <span aria-hidden="true">*</span></label>
+            <input id="field-phone" name="phone" type="tel" autocomplete="tel" required aria-describedby="error-phone">
+            <p class="field-error" id="error-phone" aria-live="polite"></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Delivery address</legend>
+          <div class="field">
+            <label for="field-delivery_address-address">Address <span aria-hidden="true">*</span></label>
+            <input id="field-delivery_address-address" name="delivery_address.address" type="text" autocomplete="street-address" required aria-describedby="error-delivery_address.address">
+            <p class="field-error" id="error-delivery_address.address" aria-live="polite"></p>
+          </div>
+          <div class="field">
+            <label for="field-delivery_address-city">City <span aria-hidden="true">*</span></label>
+            <input id="field-delivery_address-city" name="delivery_address.city" type="text" autocomplete="address-level2" required aria-describedby="error-delivery_address.city">
+            <p class="field-error" id="error-delivery_address.city" aria-live="polite"></p>
+          </div>
+          <div class="field">
+            <label for="field-delivery_address-province">Province <span aria-hidden="true">*</span></label>
+            <input id="field-delivery_address-province" name="delivery_address.province" type="text" autocomplete="address-level1" required aria-describedby="error-delivery_address.province">
+            <p class="field-error" id="error-delivery_address.province" aria-live="polite"></p>
+          </div>
+          <div class="field">
+            <label for="field-delivery_address-postal_code">Postal code <span aria-hidden="true">*</span></label>
+            <input id="field-delivery_address-postal_code" name="delivery_address.postal_code" type="text" autocomplete="postal-code" required aria-describedby="error-delivery_address.postal_code">
+            <p class="field-error" id="error-delivery_address.postal_code" aria-live="polite"></p>
+          </div>
+        </fieldset>
+
+        <button type="submit">Save changes</button>
+        <p id="form-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section class="account-actions" aria-labelledby="actions-heading">
+        <h2 id="actions-heading">Sign out or leave</h2>
+        <p>Deactivating keeps your past orders but you will not be able to sign in again.</p>
+        <p class="actions">
+          <button id="sign-out" type="button" class="button-quiet">Sign out</button>
+          <button id="deactivate" type="button" class="button-danger">Deactivate account</button>
+        </p>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

@@ -125,14 +125,53 @@ test("no Authorization header without a stored token or storage", async (t) => {
   for (const call of calls) assert.equal(call.options.headers.Authorization, undefined);
 });
 
-for (const [status, detail] of [[401, "Invalid credentials"], [403, "Forbidden"]]) {
-  test(`${status} asks for restaurant owner or admin sign-in`, async () => {
-    respondWith(status, JSON.stringify({ detail }));
-    await assert.rejects(apiRequest("/restaurants", { method: "POST", body: {} }), (error) => {
-      assert.equal(error.status, status);
-      assert.equal(error.detail, detail);
-      assert.equal(error.message, "Sign in as a restaurant owner or admin to make changes.");
-      return true;
-    });
-  });
+function storeSession(token) {
+  const items = new Map([["accessToken", token], ["customer", '{"id":1,"name":"Ada","role":"customer"}']]);
+  globalThis.sessionStorage = {
+    getItem: (key) => items.get(key) ?? null,
+    removeItem: (key) => items.delete(key),
+  };
+  return items;
 }
+
+test("401 without a session asks to sign in", async () => {
+  respondWith(401, JSON.stringify({ detail: "Invalid credentials" }));
+  await assert.rejects(apiRequest("/restaurants", { method: "POST", body: {} }), {
+    name: "ApiError", status: 401, detail: "Invalid credentials", message: "Sign in to continue.",
+  });
+});
+
+test("401 with a session reports that it expired and forgets it", async (t) => {
+  t.after(() => delete globalThis.sessionStorage);
+  const items = storeSession("stale");
+  const calls = respondWith(401, JSON.stringify({ detail: "Invalid credentials" }));
+  await assert.rejects(apiRequest("/customers/1"), {
+    status: 401, message: "Your session has expired. Sign in again.",
+  });
+  assert.equal(calls[0].options.headers.Authorization, "Bearer stale");
+  assert.equal(items.size, 0);
+  await apiRequest("/customers/1").catch(() => {});
+  assert.equal(calls[1].options.headers.Authorization, undefined);
+});
+
+test("403 says the account is not allowed and keeps the session", async (t) => {
+  t.after(() => delete globalThis.sessionStorage);
+  const items = storeSession("valid");
+  respondWith(403, JSON.stringify({ detail: "Forbidden" }));
+  await assert.rejects(apiRequest("/restaurants", { method: "POST", body: {} }), {
+    status: 403, detail: "Forbidden", message: "This account is not allowed to do that.",
+  });
+  assert.equal(items.size, 2);
+});
+
+test("other errors keep the session", async (t) => {
+  t.after(() => delete globalThis.sessionStorage);
+  const items = storeSession("valid");
+  for (const status of [404, 422, 500]) {
+    respondWith(status, JSON.stringify({ detail: "x" }));
+    await assert.rejects(apiRequest("/customers/1"), { status });
+  }
+  globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+  await assert.rejects(apiRequest("/customers/1"), { status: null });
+  assert.equal(items.size, 2);
+});

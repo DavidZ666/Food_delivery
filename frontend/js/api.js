@@ -1,6 +1,8 @@
 // helper for calling our API. pages are served by the same server so we can
 // just use paths like "/restaurants"
 
+import { clearSession, getToken } from "./session.js";
+
 export class ApiError extends Error {
   constructor(message, { status = null, detail = null } = {}) {
     super(message);
@@ -14,7 +16,7 @@ export class ApiError extends Error {
 
 export async function apiRequest(path, { method = "GET", body } = {}) {
   const options = { method, headers: { Accept: "application/json" } };
-  const token = storedToken();
+  const token = getToken();
   if (token) options.headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) {
     options.headers["Content-Type"] = "application/json";
@@ -37,7 +39,9 @@ export async function apiRequest(path, { method = "GET", body } = {}) {
     });
   }
   if (!response.ok) {
-    throw new ApiError(errorMessage(response.status, data), {
+    // the server rejected our token (expired, or the server restarted), so drop it
+    if (response.status === 401 && token) clearSession();
+    throw new ApiError(errorMessage(response.status, data, Boolean(token)), {
       status: response.status,
       detail: data?.detail ?? null,
     });
@@ -56,17 +60,9 @@ async function readJson(response) {
   }
 }
 
-// Bearer token from sign-in (#95); storage can be missing or blocked.
-function storedToken() {
-  try {
-    return globalThis.sessionStorage?.getItem("accessToken") ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function errorMessage(status, data) {
-  if (status === 401 || status === 403) return "Sign in as a restaurant owner or admin to make changes.";
+function errorMessage(status, data, signedIn) {
+  if (status === 401) return signedIn ? "Your session has expired. Sign in again." : "Sign in to continue.";
+  if (status === 403) return "This account is not allowed to do that.";
   if (typeof data?.detail === "string") return data.detail;
   if (status === 422) return "Some fields are invalid.";
   if (status >= 500) return "The server could not complete the request. Try again later.";

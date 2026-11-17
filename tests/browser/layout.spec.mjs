@@ -3,6 +3,7 @@ import { test, expect } from "./fixtures.mjs";
 const PAGES = [
   "/app/", "/app/restaurant.html?id=1", "/app/menu-item.html?restaurantId=1&productId=1",
   "/app/create-restaurant.html", "/app/edit-restaurant.html",
+  "/app/register.html", "/app/sign-in.html", "/app/account.html",
 ];
 
 for (const width of [320, 768, 1280]) {
@@ -38,7 +39,8 @@ test("the self-hosted typeface loads", async ({ page, app }) => {
 for (const colorScheme of ["light", "dark"]) {
   test(`form boundaries meet non-text contrast in ${colorScheme} mode`, async ({ page, app }) => {
     await page.emulateMedia({ colorScheme });
-    for (const path of ["/app/", "/app/create-restaurant.html", "/app/edit-restaurant.html"]) {
+    for (const path of ["/app/", "/app/create-restaurant.html", "/app/edit-restaurant.html",
+      "/app/register.html", "/app/sign-in.html"]) {
       await page.goto(`${app.url}${path}`);
       const controls = await page.locator("input, select, textarea").evaluateAll((elements) => {
         function luminance(color) {
