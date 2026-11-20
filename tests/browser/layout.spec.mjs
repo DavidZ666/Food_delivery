@@ -3,7 +3,7 @@ import { test, expect } from "./fixtures.mjs";
 const PAGES = [
   "/app/", "/app/restaurant.html?id=1", "/app/menu-item.html?restaurantId=1&productId=1",
   "/app/create-restaurant.html", "/app/edit-restaurant.html",
-  "/app/register.html", "/app/sign-in.html", "/app/account.html",
+  "/app/register.html", "/app/sign-in.html", "/app/account.html", "/app/orders.html",
 ];
 
 for (const width of [320, 768, 1280]) {

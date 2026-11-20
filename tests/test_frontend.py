@@ -109,6 +109,10 @@ def test_home_page_links_to_management_forms(client):
     ("/app/js/register.js", "text/javascript"),
     ("/app/js/sign-in.js", "text/javascript"),
     ("/app/js/account.js", "text/javascript"),
+    ("/app/orders.html", "text/html"),
+    ("/app/js/orders.js", "text/javascript"),
+    ("/app/js/orders-page.js", "text/javascript"),
+    ("/app/js/order-view.js", "text/javascript"),
     ("/app/css/styles.css", "text/css"),
 ])
 def test_frontend_assets_are_served(client, path, content_type):

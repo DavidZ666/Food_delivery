@@ -8,11 +8,12 @@ import pytest
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend"
 CSS = (FRONTEND / "css" / "styles.css").read_text(encoding="utf-8")
 NAV = {"./": "Restaurants", "create-restaurant.html": "Create a restaurant",
-       "edit-restaurant.html": "Edit a restaurant", "account.html": "Account"}
+       "edit-restaurant.html": "Edit a restaurant", "orders.html": "Orders", "account.html": "Account"}
 PAGES = {
     "index.html": "./", "create-restaurant.html": "create-restaurant.html",
     "edit-restaurant.html": "edit-restaurant.html", "restaurant.html": None, "menu-item.html": None,
     "register.html": None, "sign-in.html": None, "account.html": "account.html",
+    "orders.html": "orders.html",
 }
 TEXT_PAIRS = [
     ("ink", "paper"), ("muted", "paper"), ("accent", "paper"), ("danger", "paper"),
