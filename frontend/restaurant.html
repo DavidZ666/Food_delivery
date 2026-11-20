@@ -31,6 +31,27 @@
       <button id="retry-menu" type="button" hidden>Retry menu</button>
       <ul id="menu-list"></ul>
     </section>
+    <section id="cart-section" aria-labelledby="cart-heading">
+      <h2 id="cart-heading">Your cart</h2>
+
+      <p id="cart-status" role="status" aria-live="polite"></p>
+      <p id="cart-sign-in" hidden>
+        <a href="sign-in.html">Sign in</a> with a customer account to use the cart.
+      </p>
+
+      <button id="cart-retry" type="button" hidden>Reload cart</button>
+
+      <div id="cart-content" hidden>
+        <p id="cart-restaurant"></p>
+        <p id="cart-empty" hidden>Your cart is empty.</p>
+        <ul id="cart-items"></ul>
+
+        <p>Subtotal: <strong id="cart-subtotal"></strong></p>
+        <p>Total: <strong id="cart-total"></strong></p>
+
+        <button id="cart-clear" type="button">Clear cart</button>
+      </div>
+    </section>
   </main>
   <script type="module" src="js/restaurant-details.js"></script>
 </body>
