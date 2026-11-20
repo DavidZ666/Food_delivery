@@ -39,7 +39,7 @@ export function orderDetails(order, restaurantName = null) {
 
   const head = document.createElement("thead");
   const headings = document.createElement("tr");
-  for (const label of ["Item", "Price", "Qty", "Line total"]) headings.append(cell("th", label, "col"));
+  for (const label of ["Item", "Price", "Quantity", "Line total"]) headings.append(cell("th", label, "col"));
   head.append(headings);
 
   const body = document.createElement("tbody");
