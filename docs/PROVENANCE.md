@@ -1,5 +1,40 @@
 # AI Use and Provenance
 
+## Checkout and order views (#97)
+
+- Student: Spencer Stephen (GitHub `SpencerS04`).
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `frontend/js/orders.js`, `frontend/js/order-view.js`,
+  `frontend/js/orders-page.js`, `frontend/orders.html`, `checkout()` in
+  `frontend/js/cart.js`, the checkout button and confirmation in
+  `frontend/restaurant.html` and `frontend/js/cart-ui.js`, the Orders nav link on
+  every page, order styles in `frontend/css/styles.css`,
+  `tests/frontend/orders.test.mjs`, `tests/frontend/checkout.test.mjs`, the page
+  lists in `tests/test_frontend.py`, `tests/test_frontend_design.py` and
+  `tests/browser/layout.spec.mjs`, and the README.
+- Purpose and influence: the backend could check out and return orders but the
+  frontend had no way to start a checkout or see an order, so the M2 workflow
+  stopped at the cart. Checkout reuses the cart controller's busy, 401/403 and
+  404 resync handling from #96, and the order checks follow `isCart()`. All
+  amounts shown come from the backend. A rejected checkout (409) keeps the cart
+  on screen and says nothing changed.
+- TDD: the 15 order helper tests failed before `orders.js` existed and the 8
+  checkout tests failed before `checkout()` was added, then passed.
+- Manual check: against a copy of `data/` in a temp folder, registered and signed
+  in through the UI, added items (total $17.47), made one item unavailable in
+  storage and saw "Checkout failed: Menu item is unavailable. Your cart was not
+  changed." with the cart kept. After removing it and raising the other item's
+  price, checkout showed the order at the new price ($14.98) and an empty cart.
+  The orders list, `?id=1`, an unknown ID (404 "Order not found"), a bad ID, the
+  signed-out view and a 320px width all worked. "Qty" was changed to "Quantity"
+  because it looked underlined in our font.
+- Validation: 991 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 97
+  frontend tests and 23 browser tests passed, `git diff --check` passed,
+  representative data unchanged.
+- Limits: the checkout error repeats the backend message, which doesn't say
+  which item is unavailable. There are no Playwright tests for checkout yet
+  (#98); the browser fixture would also need `carts.json` and `orders.json`.
+
 ## Account UI (#95)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
