@@ -330,6 +330,10 @@ details legend { font-size: var(--step-0); color: var(--muted); font-weight: 600
 .order thead th:not(:first-child) { text-align: right; }
 .order tfoot th, .order tfoot td { border-bottom: 0; font-weight: 700; }
 .order tfoot th { text-align: right; }
+#orders-list { list-style: none; padding: 0; margin: 0; max-width: var(--measure); }
+#orders-list li { border-top: 1px solid var(--line); padding: var(--space-2) 0; }
+#orders-list h2 { font-size: var(--step-1); margin-bottom: var(--space-1); }
+#orders-list p { color: var(--muted); margin: 0; }
 
 /* Narrow screens */
 @media (max-width: 40rem) {
