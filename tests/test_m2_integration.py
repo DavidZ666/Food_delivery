@@ -125,3 +125,57 @@ with TestClient(app) as client:
     assert orders == [order]
     assert cart["items"] == [] and cart["total"] == 0
 
+
+def make_unorderable(manager, store, product_id, change):
+    if change == "unavailable":
+        assert manager.patch(f"/restaurants/101/menu/{product_id}",
+                             json={"is_available": False}).status_code == 200
+    elif change == "blank_name":
+        # the menu schema lets a blank name through, but it can't be ordered
+        assert manager.patch(f"/restaurants/101/menu/{product_id}",
+                             json={"name": "   "}).status_code == 200
+    elif change == "removed":
+        assert manager.delete(f"/restaurants/101/menu/{product_id}").status_code == 204
+    else:
+        # there's no delete restaurant endpoint so drop it from storage directly
+        path = store / "restaurants.json"
+        restaurants = json.loads(path.read_text(encoding="utf-8"))
+        path.write_text(json.dumps([r for r in restaurants if r["id"] != 101]), encoding="utf-8")
+
+
+# Regression for the shared menu lookup: cart and checkout used to have their own
+# copies of this rule (and checkout borrowed a private cart helper). They have to
+# keep agreeing, so the same change has to be rejected by both.
+@pytest.mark.parametrize("change,add_status,add_detail", [
+    ("unavailable", 409, "Menu item is unavailable"),
+    ("blank_name", 409, "Menu item is unavailable"),
+    ("removed", 404, "Menu item not found"),
+    ("restaurant_deleted", 404, "Menu item not found"),
+])
+def test_cart_and_checkout_reject_the_same_unorderable_items(
+        anon, manager, store, change, add_status, add_detail):
+    taco = add_menu_item(manager, "Taco", 4.5)
+    ada, ada_headers = sign_up(anon, "ada")
+    bob, bob_headers = sign_up(anon, "bob")
+    for customer_id, headers in ((ada, ada_headers), (bob, bob_headers)):
+        assert anon.post(f"/customers/{customer_id}/cart", headers=headers).status_code == 201
+    # ada adds the taco while it can still be ordered
+    assert anon.post(f"/customers/{ada}/cart/items", headers=ada_headers,
+                     json={"product_id": taco, "quantity": 1}).status_code == 200
+
+    make_unorderable(manager, store, taco, change)
+    before = storage(store)
+
+    # bob can't add it
+    added = anon.post(f"/customers/{bob}/cart/items", headers=bob_headers,
+                      json={"product_id": taco, "quantity": 1})
+    assert (added.status_code, added.json()["detail"]) == (add_status, add_detail)
+
+    # and ada can't check it out (409 since it was already in her cart)
+    checkout = anon.post(f"/customers/{ada}/checkout", headers=ada_headers)
+    assert (checkout.status_code, checkout.json()["detail"]) == (409, "Menu item is unavailable")
+
+    # nothing got saved and ada's cart still has the taco
+    assert storage(store) == before
+    cart = anon.get(f"/customers/{ada}/cart", headers=ada_headers).json()
+    assert [item["product_id"] for item in cart["items"]] == [taco]
