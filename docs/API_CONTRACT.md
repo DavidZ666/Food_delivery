@@ -597,7 +597,8 @@ the same owner and active-customer checks as #82.
 
 - The cart must already exist (POST `/customers/{customer_id}/cart`); otherwise
   404 `{"detail":"Cart not found"}`.
-- The product is looked up by ID and confirmed through `menu_service.get_menu_item`.
+- The product is looked up by ID through `catalog.get_orderable_item`, the same
+  check checkout uses.
   Unknown products, and products whose restaurant no longer exists, return 404
   `{"detail":"Menu item not found"}`. `is_available` must be `true` and the name
   nonblank, otherwise 409 `{"detail":"Menu item is unavailable"}`.
