@@ -655,3 +655,23 @@
   prefix-deployment password redaction and OpenAPI. Representative data files
   were unchanged.
 - PR: #104.
+
+## Cart UI review fixes (#96)
+
+- Student: Zihan Tao (GitHub `freesialuo`), reviewing PR #126 by `DavidZ666`.
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `frontend/js/cart.js`, `frontend/js/cart-ui.js`,
+  `frontend/js/restaurant-details.js`, `frontend/restaurant.html`,
+  `tests/frontend/cart.test.mjs`.
+- Purpose and influence: fix review findings on the cart UI. A 404 on a cart
+  mutation now reloads the cart. The cart section moves inside `<main>`. Cart
+  responses are checked before rendering. Unexpected script errors show a
+  generic message. Add-to-cart names now match the visible text, and the add
+  buttons reset when the menu reloads. The DOM bindings move from `cart.js`
+  into `cart-ui.js`.
+- Validation: `node --test "tests/frontend/*.test.mjs"`: 74 passed. Playwright
+  E2E: 23 passed. A one-off browser check against a real server ran
+  add-to-cart, an out-of-band checkout, the 404 resync and a menu retry. The
+  check was not committed. `git diff --check` and `git diff --exit-code data/`
+  passed.
+- PR: #126.

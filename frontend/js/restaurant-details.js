@@ -1,5 +1,5 @@
 import { apiRequest } from "./api.js";
-import { mountCart } from "./cart.js";
+import { mountCart } from "./cart-ui.js";
 
 const cartUi = mountCart();
 
@@ -65,6 +65,7 @@ async function loadMenu() {
   retry.hidden = true;
   section.hidden = false;
   list.replaceChildren();
+  cartUi.resetAddButtons();
   list.setAttribute("aria-busy", "true");
   status.textContent = "Loading menu...";
   try {
@@ -87,6 +88,7 @@ async function loadMenu() {
     status.textContent = items.length ? `${items.length} menu item(s).` : "No menu items available.";
   } catch (error) {
     list.replaceChildren();
+    cartUi.resetAddButtons();
     status.textContent = error.message;
     retry.hidden = false;
   } finally {

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createCartController } from "../../frontend/js/cart.js";
+import { ApiError } from "../../frontend/js/api.js";
+import { createCartController, isCart } from "../../frontend/js/cart.js";
 
 const emptyCart = {
   cart_id: 1,
@@ -40,7 +41,7 @@ test("creates a cart only after an explicit cart-not-found response", async () =
   const ui = setup(async (path, options) => {
     calls.push({ path, options });
     if (calls.length === 1) {
-      throw Object.assign(new Error("Cart not found"), {
+      throw new ApiError("Cart not found", {
         status: 404,
         detail: "Cart not found",
       });
@@ -60,7 +61,7 @@ test("does not create a cart after a network error", async () => {
   let requests = 0;
   const ui = setup(async () => {
     requests++;
-    throw new Error("Could not reach the server.");
+    throw new ApiError("Could not reach the server.");
   });
 
   assert.equal(await ui.controller.load(), false);
@@ -118,7 +119,7 @@ for (const message of [
     let requests = 0;
     const ui = setup(async () => {
       if (++requests === 1) return emptyCart;
-      throw Object.assign(new Error(message), { status: 409 });
+      throw new ApiError(message, { status: 409, detail: message });
     });
 
     await ui.controller.load();
@@ -151,9 +152,7 @@ test("disables further operations after authentication expires", async () => {
   let requests = 0;
   const ui = setup(async () => {
     if (++requests === 1) return emptyCart;
-    throw Object.assign(new Error("Your session has expired."), {
-      status: 401,
-    });
+    throw new ApiError("Your session has expired.", { status: 401 });
   });
 
   await ui.controller.load();
@@ -163,4 +162,139 @@ test("disables further operations after authentication expires", async () => {
   assert.equal(ui.isDenied(), true);
   assert.equal(requests, 2);
   assert.deepEqual(ui.locks.at(-1), { busy: false, ready: false });
+});
+const pizza = {
+  product_id: 11,
+  name: "Pizza",
+  quantity: 2,
+  unit_price: 9.5,
+  line_total: 19,
+};
+const pizzaCart = {
+  ...emptyCart,
+  restaurant_id: 3,
+  items: [pizza],
+  subtotal: 19,
+  total: 21.5,
+};
+
+test("reloads the cart when a mutation finds the displayed item gone", async () => {
+  const calls = [];
+  const ui = setup(async (path, options) => {
+    calls.push({ path, method: options?.method ?? "GET" });
+    if (calls.length === 1) return pizzaCart;
+    if (calls.length === 2) {
+      throw new ApiError("Cart item not found", {
+        status: 404,
+        detail: "Cart item not found",
+      });
+    }
+    return emptyCart;
+  });
+
+  await ui.controller.load();
+
+  assert.equal(await ui.controller.update(11, 3), false);
+  assert.deepEqual(calls, [
+    { path: "/customers/7/cart", method: "GET" },
+    { path: "/customers/7/cart/items/11", method: "PATCH" },
+    { path: "/customers/7/cart", method: "GET" },
+  ]);
+  assert.deepEqual(ui.rendered, [pizzaCart, emptyCart]);
+  assert.deepEqual(ui.messages.at(-1), { message: "Cart item not found", error: true });
+  assert.deepEqual(ui.locks.at(-1), { busy: false, ready: true });
+});
+
+test("requires an explicit reload when the resync after a 404 fails", async () => {
+  let requests = 0;
+  const ui = setup(async () => {
+    requests++;
+    if (requests === 1) return pizzaCart;
+    if (requests === 2) {
+      throw new ApiError("Cart item not found", {
+        status: 404,
+        detail: "Cart item not found",
+      });
+    }
+    if (requests === 3) throw new ApiError("Could not reach the server.");
+    return emptyCart;
+  });
+
+  await ui.controller.load();
+
+  assert.equal(await ui.controller.remove(11), false);
+  assert.equal(requests, 3);
+  assert.deepEqual(ui.rendered, [pizzaCart]);
+  assert.deepEqual(ui.locks.at(-1), { busy: false, ready: false });
+  assert.equal(await ui.controller.add(11), false);
+  assert.equal(requests, 3);
+  assert.equal(await ui.controller.load(), true);
+});
+
+test("disables the cart when the resync after a 404 is denied", async () => {
+  let requests = 0;
+  const ui = setup(async () => {
+    requests++;
+    if (requests === 1) return pizzaCart;
+    if (requests === 2) throw new ApiError("Cart item not found", { status: 404 });
+    throw new ApiError("Your session has expired.", { status: 401 });
+  });
+
+  await ui.controller.load();
+
+  assert.equal(await ui.controller.remove(11), false);
+  assert.equal(ui.isDenied(), true);
+  assert.equal(await ui.controller.load(), false);
+  assert.equal(requests, 3);
+});
+
+test("does not render a malformed cart response", async () => {
+  for (const body of [null, {}, { ...emptyCart, items: null }, { ...emptyCart, total: "5" }]) {
+    const ui = setup(async () => body);
+
+    assert.equal(await ui.controller.load(), false);
+    assert.equal(ui.rendered.length, 0);
+    assert.deepEqual(ui.messages.at(-1), {
+      message: "The server returned an invalid cart.",
+      error: true,
+    });
+  }
+});
+
+test("rejects a malformed mutation response and keeps the displayed cart", async () => {
+  let requests = 0;
+  const ui = setup(async () => (++requests === 1 ? pizzaCart : { items: [] }));
+
+  await ui.controller.load();
+
+  assert.equal(await ui.controller.add(11), false);
+  assert.deepEqual(ui.rendered, [pizzaCart]);
+  assert.equal(ui.messages.at(-1).message, "The server returned an invalid cart.");
+});
+
+test("shows a generic message instead of an unexpected script error", async () => {
+  const messages = [];
+  const locks = [];
+  const controller = createCartController({
+    customerId: 7,
+    request: async () => emptyCart,
+    render: () => {
+      throw new TypeError("Cannot read properties of null (reading 'items')");
+    },
+    showStatus: (message, error) => messages.push({ message, error }),
+    setBusy: (busy, ready) => locks.push({ busy, ready }),
+  });
+
+  assert.equal(await controller.load(), false);
+  assert.deepEqual(messages.at(-1), { message: "Could not update the cart.", error: true });
+  assert.deepEqual(locks.at(-1), { busy: false, ready: false });
+});
+
+test("isCart accepts backend carts and rejects incomplete ones", () => {
+  assert.equal(isCart(emptyCart), true);
+  assert.equal(isCart(pizzaCart), true);
+  assert.equal(isCart({ ...pizzaCart, restaurant_id: "3" }), false);
+  assert.equal(isCart({ ...pizzaCart, subtotal: Number.NaN }), false);
+  assert.equal(isCart({ ...pizzaCart, items: [{ ...pizza, name: undefined }] }), false);
+  assert.equal(isCart({ ...pizzaCart, items: [{ ...pizza, line_total: null }] }), false);
 });
