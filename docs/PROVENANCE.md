@@ -1,5 +1,29 @@
 # AI Use and Provenance
 
+## M2 integration role coverage (#101)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex, at the repository user's request.
+- Artifact: `tests/test_m2_integration.py`.
+- Purpose: finish the wrong-role API coverage for cart initialization/retrieval,
+  adding, updating, removing, clearing, and checkout. The 28-case matrix covers
+  restaurant owners and administrators targeting themselves or another customer.
+- Implementation: register and log in through real API routes, seed valid carts,
+  assign roles through the repository's administrative helper, and assert 403
+  with byte-for-byte unchanged temporary storage. Each case also verifies that
+  the same request succeeds for its owning customer. No auth guard is mocked.
+- Validation: 33 M2 integration cases and 1032 full Python cases passed with
+  `PYTHONWARNDEFAULTENCODING=1`; `git diff --check` and the source `data/` diff
+  check passed. No frontend code changed; browser tests were not rerun here.
+- Acceptance evidence: the M2 integration file covers the connected workflow,
+  fresh-process persistence, shared-menu regression, and the new role matrix.
+  Existing `test_cart_api.py`, `test_cart_add.py`, and `test_cart_edit.py` cover
+  inactive accounts, credentials, ownership, quantities, and restaurant conflicts.
+  `test_checkout.py` and `test_checkout_atomicity.py` cover live-menu revalidation
+  and failed writes; `test_customer_profile.py` and `test_order_retrieval.py`
+  cover profile/order access. These tests use temporary storage.
+- Remaining delivery step: peer review and CI on the submitted PR before closing
+  #101. This entry does not claim that review has occurred.
+
 ## Cart reload after checkout, browser test cleanup (#129, #130 review follow-up)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
