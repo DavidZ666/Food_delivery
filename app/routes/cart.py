@@ -6,7 +6,7 @@ from app.core.api_contract import STORAGE_FAILURE
 from app.core.auth import require_customer_owner
 from app.schemas.cart import CartItemAdd, CartItemUpdate, CartRead
 from app.schemas.error import ErrorResponse
-from app.services import cart_service, customer_service
+from app.services import cart_service, catalog, customer_service
 
 
 router = APIRouter(tags=["Cart"])
@@ -34,7 +34,7 @@ def _http_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=422, detail=str(exc))
     if isinstance(exc, customer_service.InactiveCustomerError):
         return HTTPException(status_code=403, detail="Forbidden")
-    if isinstance(exc, (cart_service.MenuItemUnavailableError, cart_service.RestaurantConflictError)):
+    if isinstance(exc, (catalog.MenuItemUnavailableError, cart_service.RestaurantConflictError)):
         return HTTPException(status_code=409, detail=str(exc))
     return HTTPException(status_code=404, detail=str(exc))
 
@@ -97,8 +97,8 @@ def create_cart(customer_id: CustomerId, response: Response):
 def add_cart_item(customer_id: CustomerId, item: CartItemAdd):
     try:
         return cart_service.add_item(customer_id, item)
-    except (cart_service.CartNotFoundError, cart_service.MenuItemNotFoundError,
-            cart_service.MenuItemUnavailableError, cart_service.RestaurantConflictError, cart_service.CartTotalError,
+    except (cart_service.CartNotFoundError, catalog.MenuItemNotFoundError,
+            catalog.MenuItemUnavailableError, cart_service.RestaurantConflictError, cart_service.CartTotalError,
             customer_service.CustomerNotFoundError, customer_service.InactiveCustomerError) as exc:
         raise _http_error(exc) from exc
 

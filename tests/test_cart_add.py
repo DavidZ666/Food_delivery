@@ -13,7 +13,7 @@ from app.core import customer_auth
 from app.main import app
 from app.repositories import cart_repo, customer_repo
 from app.schemas.cart import CartItemAdd
-from app.services import cart_service, customer_service
+from app.services import cart_service, catalog, customer_service
 
 
 PASSWORD = "cart-add-password"
@@ -103,9 +103,9 @@ def test_repeat_add_aggregates_quantity_and_refreshes_menu_values(accounts, data
 
 @pytest.mark.parametrize("customer,product,error", [
     ("cartless", 1, cart_service.CartNotFoundError),
-    ("ada", 99, cart_service.MenuItemNotFoundError),
-    ("ada", 5, cart_service.MenuItemNotFoundError),
-    ("ada", 3, cart_service.MenuItemUnavailableError),
+    ("ada", 99, catalog.MenuItemNotFoundError),
+    ("ada", 5, catalog.MenuItemNotFoundError),
+    ("ada", 3, catalog.MenuItemUnavailableError),
 ])
 def test_service_rejections_leave_carts_unchanged(accounts, data_dir, customer, product, error):
     before = carts(data_dir)
