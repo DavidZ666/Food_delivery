@@ -25,10 +25,9 @@ def list_all():
 
 def get_by_id(product_id: int) -> dict | None:
     """Return a product by ID, or None if it does not exist."""
-    products = list_all()
     return next(
-        (product for product in products if product["product_id"] == product_id),
-        None
+        (product for product in list_all() if product["product_id"] == product_id),
+        None,
     )
 
 def _highest_referenced_product_id() -> int:

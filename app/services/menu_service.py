@@ -30,6 +30,7 @@ def get_menu_item(restaurant_id: int, product_id: int):
             return product
     raise MenuItemNotFound
 
+
 def create_menu_item(restaurant_id: int, data: dict):
     _validate_restaurant(restaurant_id)
     return product_repo.create(restaurant_id, data)
@@ -37,7 +38,6 @@ def create_menu_item(restaurant_id: int, data: dict):
 
 def update_menu_item(restaurant_id: int, product_id: int, changes: dict):
     _validate_restaurant(restaurant_id)
-
     try:
         return product_repo.update_by_id(restaurant_id, product_id, changes)
     except product_repo.ProductRecordNotFoundError:
@@ -46,7 +46,6 @@ def update_menu_item(restaurant_id: int, product_id: int, changes: dict):
 
 def delete_menu_item(restaurant_id: int, product_id: int):
     _validate_restaurant(restaurant_id)
-
     try:
         product_repo.delete_by_id(restaurant_id, product_id)
     except product_repo.ProductRecordNotFoundError:
