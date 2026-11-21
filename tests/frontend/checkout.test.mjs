@@ -142,3 +142,51 @@ test("checkout does nothing before the cart has loaded", async () => {
   assert.equal(await ui.controller.checkout(), false);
   assert.deepEqual(ui.calls, []);
 });
+
+// the order is saved even if the cart refresh after it fails, so the message
+// has to say so, and the old cart on screen can't be used until it reloads
+for (const [name, failure] of [
+  ["server error", () => new ApiError("Could not reach the server.", { status: 500 })],
+  ["network error", () => new TypeError("Failed to fetch")],
+]) {
+  test(`a failed cart reload after checkout still reports the order: ${name}`, async () => {
+    let reloadFails = true;
+    const ui = setup((path) => {
+      if (path.endsWith("/checkout")) return order;
+      if (reloadFails) throw failure();
+      return emptyCart;
+    });
+    await ui.controller.load();
+
+    assert.equal(await ui.controller.checkout(), false);
+    assert.deepEqual(ui.orders, [order]);
+    assert.deepEqual(ui.messages.at(-1), {
+      message: "Order #3 placed, but the cart could not be reloaded. Reload the cart to continue.",
+      error: true,
+    });
+
+    // the stale cart (still showing the taco) can't be checked out or edited
+    ui.calls.length = 0;
+    assert.equal(await ui.controller.checkout(), false);
+    assert.equal(await ui.controller.add(1), false);
+    assert.deepEqual(ui.calls, []);
+
+    // Reload cart brings it back
+    reloadFails = false;
+    assert.equal(await ui.controller.load(), true);
+    assert.deepEqual(ui.rendered.at(-1), emptyCart);
+  });
+}
+
+test("a sign-in expiring during the reload still reports the order", async () => {
+  const ui = setup((path) => {
+    if (path.endsWith("/checkout")) return order;
+    throw new ApiError("Your session has expired. Please sign in again.", { status: 401 });
+  });
+  await ui.controller.load();
+
+  assert.equal(await ui.controller.checkout(), false);
+  assert.deepEqual(ui.orders, [order]);
+  assert.equal(ui.isDenied(), true);
+  assert.match(ui.messages.at(-1).message, /^Order #3 placed, but the cart could not be reloaded/);
+});
