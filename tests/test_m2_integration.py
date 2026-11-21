@@ -179,3 +179,64 @@ def test_cart_and_checkout_reject_the_same_unorderable_items(
     assert storage(store) == before
     cart = anon.get(f"/customers/{ada}/cart", headers=ada_headers).json()
     assert [item["product_id"] for item in cart["items"]] == [taco]
+
+
+# Check real routes as well as the shared guard: an accidental missing dependency
+# on any one cart mutation or checkout must fail this matrix.
+@pytest.mark.parametrize("role", ["restaurant_owner", "admin"])
+@pytest.mark.parametrize("target", ["self", "other"])
+@pytest.mark.parametrize("method,suffix,body,success", [
+    ("POST", "/cart", None, 200),
+    ("GET", "/cart", None, 200),
+    ("POST", "/cart/items", {"quantity": 1}, 200),
+    ("PATCH", "/cart/items/{product_id}", {"quantity": 3}, 200),
+    ("DELETE", "/cart/items/{product_id}", None, 200),
+    ("DELETE", "/cart/items", None, 200),
+    ("POST", "/checkout", None, 201),
+])
+def test_management_roles_cannot_use_customer_cart_operations(
+        anon, manager, store, role, target, method, suffix, body, success):
+    from app.repositories import customer_repo
+
+    product_id = add_menu_item(manager, "Role test taco", 4.5)
+    actor_id, actor_headers = sign_up(anon, "actor")
+    other_id, other_headers = sign_up(anon, "other")
+
+    # Seed valid, nonempty carts while both accounts are customers. This makes
+    # missing role checks observable even for checkout and item mutations.
+    for customer_id, headers in ((actor_id, actor_headers), (other_id, other_headers)):
+        base = f"/customers/{customer_id}/cart"
+        assert anon.post(base, headers=headers).status_code == 201
+        assert anon.post(f"{base}/items", headers=headers, json={
+            "product_id": product_id, "quantity": 2,
+        }).status_code == 200
+
+    # Role assignment is an administrative setup operation, not a public API.
+    # Authenticate normally after assigning it; no auth dependencies are mocked.
+    customer_repo.set_role("actor@example.com", role)
+    login = anon.post("/auth/login", json={
+        "email": "actor@example.com", "password": PASSWORD,
+    })
+    assert login.status_code == 200
+    assert login.json()["customer"]["role"] == role
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    target_id = actor_id if target == "self" else other_id
+    path = f"/customers/{target_id}{suffix.format(product_id=product_id)}"
+    payload = dict(body) if body is not None else None
+    if method == "POST" and suffix == "/cart/items":
+        payload["product_id"] = product_id
+    options = {} if payload is None else {"json": payload}
+
+    before = {p.name: p.read_bytes() for p in store.iterdir() if p.is_file()}
+    response = anon.request(method, path, headers=headers, **options)
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Forbidden"}
+    assert {p.name: p.read_bytes() for p in store.iterdir() if p.is_file()} == before
+
+    # Positive control: the exact request succeeds as its owning customer.
+    # Otherwise a broken route or invalid payload could conceal a guard bug.
+    customer_repo.set_role("actor@example.com", "customer")
+    owner_headers = actor_headers if target == "self" else other_headers
+    allowed = anon.request(method, path, headers=owner_headers, **options)
+    assert allowed.status_code == success
