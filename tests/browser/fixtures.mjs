@@ -28,14 +28,44 @@ export async function signInThroughUi(page, app, { email, password }) {
   await expect(page.locator("#account-email")).toHaveText(email);
 }
 
+
+async function readOptional(path) {
+  try {
+    return await readFile(path);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 export const test = base.extend({
   app: async ({}, use) => {
     const root = process.cwd();
     const directory = await mkdtemp(join(tmpdir(), "bytebites-browser-"));
-    const filenames = ["restaurants.json", "products.json"];
-    const originals = await Promise.all(filenames.map((name) => readFile(join(root, "data", name))));
-    for (const name of filenames) await copyFile(join(root, "data", name), join(directory, name));
-    await writeFile(join(directory, "customers.json"), JSON.stringify([MANAGER]));
+        const filenames = [
+      "restaurants.json",
+      "products.json",
+      "customers.json",
+      "carts.json",
+      "orders.json",
+    ];
+
+    const originals = await Promise.all(
+      filenames.map((name) => readOptional(join(root, "data", name)))
+    );
+
+    // Keep existing restaurant/menu fixtures for the older browser tests.
+    for (const name of ["restaurants.json", "products.json"]) {
+      await copyFile(join(root, "data", name), join(directory, name));
+    }
+
+    // Every test starts with isolated customer/cart/order storage.
+    await writeFile(
+      join(directory, "customers.json"),
+      JSON.stringify([MANAGER])
+    );
+    await writeFile(join(directory, "carts.json"), "[]");
+    await writeFile(join(directory, "orders.json"), "[]");
     const socket = createServer();
     await new Promise((done) => socket.listen(0, "127.0.0.1", done));
     const port = socket.address().port;
@@ -77,12 +107,20 @@ export const test = base.extend({
         return (await response.json()).access_token;
       };
       await use({ url, directory, signIn, restart: async () => { await stop(); await start(); } });
-    } finally {
+        } finally {
       await stop();
-      for (const [index, name] of filenames.entries()) {
-        assert.deepEqual(await readFile(join(root, "data", name)), originals[index], `Representative ${name} changed`);
+
+      try {
+        for (const [index, name] of filenames.entries()) {
+          assert.deepEqual(
+            await readOptional(join(root, "data", name)),
+            originals[index],
+            `Source data/${name} changed during browser tests`
+          );
+        }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
       }
-      await rm(directory, { recursive: true, force: true });
     }
   },
 });
