@@ -23,6 +23,13 @@ def _validate_records(records):
 def list_all():
     return read_json_array(get_data_dir() / "products.json")
 
+def get_by_id(product_id: int) -> dict | None:
+    """Return a product by ID, or None if it does not exist."""
+    products = list_all()
+    return next(
+        (product for product in products if product["product_id"] == product_id),
+        None
+    )
 
 def _highest_referenced_product_id() -> int:
     """Preserve identities still known to legacy carts and order snapshots."""

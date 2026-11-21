@@ -45,7 +45,7 @@ CartTotalError = cart_repo.CartTotalError
 
 def _menu_item(product_id: int) -> dict:
     """Find the product and confirm, via the menu service, that its restaurant exists."""
-    product = next((p for p in product_repo.list_all() if p["product_id"] == product_id), None)
+    product = product_repo.get_by_id(product_id)
     if product is None:
         raise MenuItemNotFoundError("Menu item not found")
     try:
