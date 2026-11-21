@@ -120,7 +120,9 @@ rechecks the menu and saves the order at current prices. The saved order then
 shows above the cart with its items, delivery address and the total the backend
 saved, and the cart reloads empty. If checkout is rejected (for example an item
 became unavailable) the error is shown and the cart stays as it was, since the
-backend didn't change anything. The Orders page in the nav lists the signed-in
+backend didn't change anything. If the order is saved but the cart can't be
+reloaded afterwards, the message still gives the order number and the cart
+controls stay disabled until Reload cart works. The Orders page in the nav lists the signed-in
 customer's orders newest first and `orders.html?id=N` shows one order. Unknown
 order IDs show "Order not found".
 

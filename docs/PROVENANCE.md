@@ -1,5 +1,24 @@
 # AI Use and Provenance
 
+## Cart reload after checkout, browser test cleanup (#129, #130 review follow-up)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `checkout()` in `frontend/js/cart.js`, three tests in
+  `tests/frontend/checkout.test.mjs`, formatting in `tests/browser/fixtures.mjs`
+  and `tests/browser/workflow.spec.mjs`, README.
+- Purpose and influence: these are review notes from #129 and #130. When checkout saved the order but the
+  cart reload after it failed, the status showed a generic cart error and the
+  old cart stayed usable. Now the message gives the order number, and the cart
+  controls stay disabled until Reload cart works. A 401/403 still signs the
+  customer out of the cart. The #130 browser test files had misindented lines
+  and no final newline, so those were fixed with no change in behaviour.
+- TDD: the 3 new checkout tests (server error, network error, expired sign-in
+  during the reload) failed before the change, then passed.
+- Validation: 1004 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 100
+  frontend tests and 27 browser tests passed, `git diff --check` passed,
+  representative data unchanged.
+
 ## Checkout and order views (#97)
 
 - Student: Spencer Stephen (GitHub `SpencerS04`).

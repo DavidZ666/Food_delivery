@@ -28,7 +28,6 @@ export async function signInThroughUi(page, app, { email, password }) {
   await expect(page.locator("#account-email")).toHaveText(email);
 }
 
-
 async function readOptional(path) {
   try {
     return await readFile(path);
@@ -42,7 +41,7 @@ export const test = base.extend({
   app: async ({}, use) => {
     const root = process.cwd();
     const directory = await mkdtemp(join(tmpdir(), "bytebites-browser-"));
-        const filenames = [
+    const filenames = [
       "restaurants.json",
       "products.json",
       "customers.json",
@@ -107,7 +106,7 @@ export const test = base.extend({
         return (await response.json()).access_token;
       };
       await use({ url, directory, signIn, restart: async () => { await stop(); await start(); } });
-        } finally {
+    } finally {
       await stop();
 
       try {

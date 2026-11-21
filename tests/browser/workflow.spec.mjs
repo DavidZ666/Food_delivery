@@ -394,9 +394,9 @@ test("unavailable items and failed checkout preserve the existing cart", async (
 
   const status = page.locator("#cart-status");
 
-await expect(status).toContainText(checkoutError.detail);
-await expect(status).toContainText("Your cart was not changed.");
-await expect(status).toHaveAttribute("data-kind", "error");
+  await expect(status).toContainText(checkoutError.detail);
+  await expect(status).toContainText("Your cart was not changed.");
+  await expect(status).toHaveAttribute("data-kind", "error");
 
   await expect(page.locator("#order-confirmation")).toBeHidden();
   await expectCart(page, originalCart);

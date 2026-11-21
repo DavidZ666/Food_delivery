@@ -170,7 +170,16 @@ export function createCartController({
         }
         if (!isOrder(order)) throw new ApiError(INVALID_ORDER);
         onOrder(order);
-        return fetchCart();
+        try {
+          return await fetchCart();
+        } catch (error) {
+          // the order is saved, only the refresh failed. say so, and stop the
+          // old cart on screen from being used until Reload cart works
+          ready = false;
+          throw new ApiError(
+            `Order #${order.order_id} placed, but the cart could not be reloaded. Reload the cart to continue.`,
+            { status: error.status ?? null, detail: error.detail ?? null });
+        }
       }, "Order placed.");
     },
   };
