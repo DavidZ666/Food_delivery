@@ -1,94 +1,96 @@
-"""Tests for cart service architecture and repository interactions."""
+"""Product lookup by ID, and adding to the cart through it, against real temp data."""
+import json
 
-from unittest.mock import Mock
+import pytest
 
-from app.repositories import cart_repo, product_repo
+from app.core import customer_auth
+from app.repositories import cart_repo, customer_repo, product_repo
 from app.schemas.cart import CartItemAdd, CartRead
-from app.services import cart_service, customer_service, menu_service
+from app.services import cart_service
 
 
-def test_add_item_uses_product_repository_lookup_and_menu_values(monkeypatch):
-    customer_id = 7
-    product_id = 1
-    restaurant_id = 101
+ADDRESS = {"address": "1 Main St", "city": "Kelowna", "province": "BC", "postal_code": "V1V 1V1"}
+PRODUCTS = [
+    {"product_id": 1, "restaurant_id": 101, "name": "Taco", "description": "", "price": 4.5,
+     "category": "Main", "image": "", "is_available": True},
+    {"product_id": 2, "restaurant_id": 101, "name": "Sold out", "description": "", "price": 5.0,
+     "category": "Main", "image": "", "is_available": False},
+    {"product_id": 7, "restaurant_id": 102, "name": "Burger", "description": "", "price": 7.25,
+     "category": "Main", "image": "", "is_available": True},
+]
 
-    product = {
-        "product_id": product_id,
-        "restaurant_id": restaurant_id,
-        "name": "Taco",
-        "price": 4.5,
-        "is_available": True,
-    }
 
-    existing_cart = {
-        "cart_id": 10,
-        "customer_id": customer_id,
-        "restaurant_id": None,
-        "items": [],
-    }
+@pytest.fixture
+def products(data_dir):
+    path = data_dir / "products.json"
+    path.write_text(json.dumps(PRODUCTS), encoding="utf-8")
+    return path
 
-    updated_cart = {
-        "cart_id": 10,
-        "customer_id": customer_id,
-        "restaurant_id": restaurant_id,
-        "items": [
-            {
-                "product_id": product_id,
-                "name": "Taco",
-                "unit_price": 4.5,
-                "quantity": 2,
-            }
-        ],
-    }
 
-    require_active = Mock()
-    get_cart = Mock(return_value=existing_cart)
-    get_product = Mock(return_value=product)
-    get_menu_item = Mock(return_value=product)
-    add_cart_item = Mock(return_value=updated_cart)
-    list_products = Mock()
+@pytest.fixture
+def customer(products, data_dir):
+    (data_dir / "carts.json").write_text("[]", encoding="utf-8")
+    created = customer_repo.create({
+        "name": "Ada", "email": "ada@example.com", "phone": "250-555-0100",
+        "delivery_address": ADDRESS, "password_hash": customer_auth.hash_password("cart-lookup-password"),
+        "role": "customer", "is_active": True,
+    })
+    cart_repo.create(created["id"])
+    return created
 
-    monkeypatch.setattr(
-        customer_service, "require_active_customer", require_active
-    )
-    monkeypatch.setattr(cart_repo, "get_by_customer_id", get_cart)
-    monkeypatch.setattr(product_repo, "get_by_id", get_product)
-    monkeypatch.setattr(product_repo, "list_all", list_products)
-    monkeypatch.setattr(menu_service, "get_menu_item", get_menu_item)
-    monkeypatch.setattr(cart_repo, "add_item", add_cart_item)
 
-    result = cart_service.add_item(
-        customer_id,
-        CartItemAdd(product_id=product_id, quantity=2),
-    )
+def stored_cart(data_dir, customer_id):
+    carts = json.loads((data_dir / "carts.json").read_text(encoding="utf-8"))
+    return next(cart for cart in carts if cart["customer_id"] == customer_id)
 
-    # Check that the returned cart is valid and has the correct totals.
+
+@pytest.mark.parametrize("product_id", [1, 2, 7])
+def test_get_by_id_returns_the_stored_product(products, product_id):
+    expected = next(p for p in PRODUCTS if p["product_id"] == product_id)
+    assert product_repo.get_by_id(product_id) == expected
+
+
+@pytest.mark.parametrize("product_id", [3, 99])
+def test_get_by_id_returns_none_for_missing_ids(products, product_id):
+    # 3 sits between stored IDs, 99 is past them
+    assert product_repo.get_by_id(product_id) is None
+
+
+def test_get_by_id_does_not_write(products):
+    before = products.read_bytes()
+    product_repo.get_by_id(1)
+    product_repo.get_by_id(99)
+    assert products.read_bytes() == before
+
+
+def test_add_item_looks_up_the_product_by_id_and_stores_menu_values(customer, data_dir, monkeypatch):
+    looked_up = []
+    real_get_by_id = product_repo.get_by_id
+
+    def spy(product_id):
+        looked_up.append(product_id)
+        return real_get_by_id(product_id)
+
+    monkeypatch.setattr(product_repo, "get_by_id", spy)
+
+    result = cart_service.add_item(customer["id"], CartItemAdd(product_id=1, quantity=2))
+
+    assert looked_up == [1]
     assert isinstance(result, CartRead)
-    assert result.items[0].name == "Taco"
-    assert result.items[0].unit_price == 4.5
-    assert result.items[0].quantity == 2
-    assert result.subtotal == 9.0
-    assert result.total == 9.0
+    assert (result.restaurant_id, result.subtotal, result.total) == (101, 9.0, 9.0)
+    # name and price come from the stored menu, and the cart on disk matches
+    cart = stored_cart(data_dir, customer["id"])
+    assert cart["restaurant_id"] == 101
+    assert cart["items"] == [{"product_id": 1, "name": "Taco", "unit_price": 4.5, "quantity": 2}]
 
-    # Check that the service uses the repository to retrieve the product.
-    require_active.assert_called_once_with(customer_id)
-    get_cart.assert_called_once_with(customer_id)
-    get_product.assert_called_once_with(product_id)
 
-    # Check that menu validation receives the correct restaurant and product.
-    get_menu_item.assert_called_once_with(restaurant_id, product_id)
-
-    # Check that the cart repository receives the menu's values.
-    add_cart_item.assert_called_once_with(
-        customer_id,
-        restaurant_id,
-        {
-            "product_id": product_id,
-            "name": "Taco",
-            "unit_price": 4.5,
-            "quantity": 2,
-        },
-    )
-
-    # The cart service should not directly load the entire product list.
-    list_products.assert_not_called()
+@pytest.mark.parametrize("product_id,error,detail", [
+    (99, LookupError, "Menu item not found"),
+    (2, ValueError, "Menu item is unavailable"),
+])
+def test_add_item_rejects_missing_or_unavailable_items_without_writing(
+        customer, data_dir, product_id, error, detail):
+    before = (data_dir / "carts.json").read_bytes()
+    with pytest.raises(error, match=detail):
+        cart_service.add_item(customer["id"], CartItemAdd(product_id=product_id, quantity=1))
+    assert (data_dir / "carts.json").read_bytes() == before
