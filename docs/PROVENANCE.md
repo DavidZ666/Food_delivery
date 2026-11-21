@@ -1,5 +1,22 @@
 # AI Use and Provenance
 
+## M2 submission closeout (#102)
+
+- Label: AI-GENERATED; AI tool: OpenAI Codex, requested by the repository user.
+- Artifacts: `docs/milestones/M2.md`, README submission links, API contract heading
+  and DELETE response clarification.
+- Source: supplied "Milestone 2 - Integrated Core System" assignment PDF,
+  particularly sections 7, 10, 11 and 12. The explicit submitted-version requirement
+  is an M2 tag/release URL plus assessed SHA; the demo duration is 15 minutes.
+- Influence: reconcile requirements with existing implementation, index tests and
+  review evidence, document publication checks and correct outdated API prose.
+- Validation: implementation baseline `ef11ab812a1a02213982b29548b87ad0d9602973`:
+  1041 Python tests, 100 frontend tests and 27 browser tests passed; source data
+  unchanged. The closeout changes documentation only.
+- Limits: Project Board and lab Decision Receipts were reported complete by the
+  user and excluded from this closeout. No lab participation, personal authorship,
+  meeting date or teammate approval is fabricated. Publication follows review.
+
 ## M2 integration role coverage (#101)
 
 - Label: AI-GENERATED; AI tool: OpenAI Codex, at the repository user's request.

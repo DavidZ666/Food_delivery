@@ -2,6 +2,14 @@
 
 ByteBites
 
+## Milestone 2 submission
+
+The integrated customer-to-order workflow is implemented. See the
+[M2 submission and demo guide](docs/milestones/M2.md) for test results, review
+evidence, the 15-minute demonstration and publication checks. Canvas requires the
+`m2-integrated-system` **tag URL and its full commit SHA**, not the moving `main`
+branch. Publish the tag only after the final documentation PR is reviewed and merged.
+
 ## Python Version
 
 Use Python 3.14.7.

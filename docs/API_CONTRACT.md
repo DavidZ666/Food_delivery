@@ -1,6 +1,7 @@
-# M1 API contract (#27)
+# Integrated API contract (M1 and M2)
 
-This documents the implemented M1 behavior. `/openapi.json` is the machine-readable
+This documents the implemented restaurant/menu, customer/auth, cart, checkout and
+order behavior. M1 operations remain supported by the integrated M2 system. `/openapi.json` is the machine-readable
 contract and `/docs` is its interactive view. Examples in those operations are
 executed by `tests/test_api_contract.py` using temporary JSON files. They are
 illustrative data, not extra restaurants or products loaded into the application.
@@ -9,7 +10,9 @@ illustrative data, not extra restaurants or products loaded into the application
 
 Default origin: `http://127.0.0.1:8000`. Requests with bodies use
 `Content-Type: application/json`. Successful bodies and 404/422 errors are JSON;
-500 storage errors are plain text. DELETE success has no response body.
+500 storage errors are plain text. Menu-item DELETE returns 204 without a body;
+cart-item removal and cart clearing return 200 with the updated `CartRead` JSON.
+See the [M2 submission guide](milestones/M2.md) for the assessed-version procedure.
 
 | Method and path | Inputs | Success body | Status codes |
 |---|---|---|---|
