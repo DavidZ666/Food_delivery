@@ -18,7 +18,7 @@ class MenuItemUnavailableError(ValueError):
 
 def find_menu_item(product_id: int) -> dict:
     """Return the stored menu item, as long as its restaurant still exists."""
-    product = next((p for p in product_repo.list_all() if p["product_id"] == product_id), None)
+    product = product_repo.get_by_id(product_id)
     # an item whose restaurant was deleted can't be ordered, so treat it as missing
     if product is None or restaurant_repo.get_by_id(product["restaurant_id"]) is None:
         raise MenuItemNotFoundError("Menu item not found")

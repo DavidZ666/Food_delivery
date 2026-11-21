@@ -1,5 +1,31 @@
 # AI Use and Provenance
 
+## Product lookup by ID review fixes (#131 review follow-up)
+
+- Student: Zihan Tao (GitHub `freesialuo`), fixes on Trey Major's PR with his agreement.
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Scope: only the review fixes below. The original design (`product_repo.get_by_id`
+  and `_validate_restaurant` in `menu_service`) is Trey's commit `a95c90a`.
+- Artifacts: `tests/test_cart_service_architecture.py` (rewritten), formatting in
+  `app/repositories/product_repo.py`, `app/services/menu_service.py` and the two
+  M2 scrum files, the merge of `main`, and `catalog.find_menu_item` calling
+  `product_repo.get_by_id`.
+- Purpose and influence: the branch started before #128 moved the cart's menu
+  lookup into `app/services/catalog.py`, so it conflicted with `main` and its
+  mock-only test failed once merged. The merge keeps `main`'s `cart_service.py`
+  and makes the lookup Trey changed (now in `catalog.find_menu_item`) use his
+  `get_by_id`, so the helper has a real caller. The test now uses temp-dir
+  data and checks `get_by_id` directly, that add to cart looks the product up
+  by ID and stores the menu's name and price, and that missing or unavailable
+  items are rejected without writing.
+- Regression check: disabling the availability check in the cart service makes
+  the new rejection test fail; the old mocked test passed with it disabled.
+- Validation: 1013 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 100
+  frontend tests and 27 browser tests passed, `git diff --check` passed,
+  representative data unchanged. Python tests also passed at every commit.
+- Limits: the Team Receipt M2.3 entry for this improvement is Trey's to write
+  (#100). The planning minutes date is still waiting on Trey.
+
 ## Cart reload after checkout, browser test cleanup (#129, #130 review follow-up)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
