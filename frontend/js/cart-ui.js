@@ -2,6 +2,8 @@
 // lives in the DOM-free cart.js so Node tests can import it directly.
 
 import { createCartController } from "./cart.js";
+import { orderDetails } from "./order-view.js";
+import { fetchRestaurantNames } from "./orders.js";
 import { getCustomer, getToken } from "./session.js";
 
 export function mountCart() {
@@ -16,6 +18,11 @@ export function mountCart() {
   const restaurant = document.querySelector("#cart-restaurant");
   const subtotal = document.querySelector("#cart-subtotal");
   const total = document.querySelector("#cart-total");
+  const checkout = document.querySelector("#cart-checkout");
+  const confirmation = document.querySelector("#order-confirmation");
+  const confirmationHeading = document.querySelector("#order-confirmation-heading");
+  const confirmationDetails = document.querySelector("#order-confirmation-details");
+  const confirmationLink = document.querySelector("#order-confirmation-link");
 
   const customer = getCustomer();
   let addButtons = [];
@@ -37,6 +44,7 @@ export function mountCart() {
     }
 
     clear.disabled = busy || !ready || !currentCart?.items.length;
+    checkout.disabled = busy || !ready || !currentCart?.items.length;
     retry.disabled = busy;
     section.setAttribute("aria-busy", String(busy));
   }
@@ -51,6 +59,8 @@ export function mountCart() {
     content.hidden = false;
     list.replaceChildren();
     empty.hidden = cart.items.length !== 0;
+    // once they start a new cart the old confirmation isn't needed
+    if (cart.items.length) confirmation.hidden = true;
 
     restaurant.textContent = cart.restaurant_id === null
       ? ""
@@ -105,6 +115,16 @@ export function mountCart() {
     }
   }
 
+  // shown after a checkout works. the order comes straight from the API
+  async function showOrder(order) {
+    const names = await fetchRestaurantNames();
+    confirmationDetails.replaceChildren(orderDetails(order, names.get(order.restaurant_id)));
+    confirmationLink.href = `orders.html?id=${order.order_id}`;
+    confirmation.hidden = false;
+    // move focus so screen readers announce the order
+    confirmationHeading.focus();
+  }
+
   if (getToken() && customer?.role === "customer") {
     retry.hidden = false;
 
@@ -124,10 +144,14 @@ export function mountCart() {
         signIn.hidden = false;
         retry.hidden = true;
       },
+      onOrder(order) {
+        void showOrder(order);
+      },
     });
 
     retry.addEventListener("click", () => void controller.load());
     clear.addEventListener("click", () => void controller.clear());
+    checkout.addEventListener("click", () => void controller.checkout());
     void controller.load();
   } else {
     signIn.hidden = false;

@@ -1,4 +1,5 @@
 import { ApiError, apiRequest } from "./api.js";
+import { INVALID_ORDER, isOrder } from "./orders.js";
 
 const INVALID_CART = "The server returned an invalid cart.";
 const GENERIC_FAILURE = "Could not update the cart.";
@@ -32,6 +33,7 @@ export function createCartController({
   showStatus,
   setBusy,
   onDenied = () => {},
+  onOrder = () => {},
 }) {
   const base = `/customers/${customerId}/cart`;
   let busy = false;
@@ -147,6 +149,29 @@ export function createCartController({
 
     clear() {
       return mutate(`${base}/items`, { method: "DELETE" }, "Cart cleared.");
+    },
+
+    // checkout (#97): the backend rechecks the menu and saves the order, then
+    // we show the order and reload the cart (it's empty after a checkout)
+    checkout() {
+      if (!ready) return Promise.resolve(false);
+      return run(async () => {
+        let order;
+        try {
+          order = await request(`/customers/${customerId}/checkout`, { method: "POST" });
+        } catch (error) {
+          // 409 means the cart didn't pass the recheck (item unavailable, empty
+          // cart). nothing was saved, so the cart on screen is still right
+          if (error.status === 409) {
+            throw new ApiError(`Checkout failed: ${error.message}. Your cart was not changed.`,
+              { status: 409, detail: error.detail });
+          }
+          throw error;
+        }
+        if (!isOrder(order)) throw new ApiError(INVALID_ORDER);
+        onOrder(order);
+        return fetchCart();
+      }, "Order placed.");
     },
   };
 }

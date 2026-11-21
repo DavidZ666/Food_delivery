@@ -15,6 +15,7 @@
         <a href="./">Restaurants</a>
         <a href="create-restaurant.html">Create a restaurant</a>
         <a href="edit-restaurant.html">Edit a restaurant</a>
+        <a href="orders.html">Orders</a>
         <a href="account.html">Account</a>
       </nav>
     </div>
@@ -41,6 +42,12 @@
 
       <button id="cart-retry" type="button" hidden>Reload cart</button>
 
+      <section id="order-confirmation" aria-labelledby="order-confirmation-heading" hidden>
+        <h3 id="order-confirmation-heading" tabindex="-1">Order placed</h3>
+        <div id="order-confirmation-details"></div>
+        <p><a id="order-confirmation-link" href="orders.html">View this order</a> or see <a href="orders.html">all your orders</a>.</p>
+      </section>
+
       <div id="cart-content" hidden>
         <p id="cart-restaurant"></p>
         <p id="cart-empty" hidden>Your cart is empty.</p>
@@ -49,7 +56,10 @@
         <p>Subtotal: <strong id="cart-subtotal"></strong></p>
         <p>Total: <strong id="cart-total"></strong></p>
 
-        <button id="cart-clear" type="button">Clear cart</button>
+        <p class="actions">
+          <button id="cart-checkout" type="button">Check out</button>
+          <button id="cart-clear" type="button">Clear cart</button>
+        </p>
       </div>
     </section>
   </main>
