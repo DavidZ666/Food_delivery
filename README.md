@@ -315,6 +315,10 @@ Tests cover:
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 - Restaurant creation, request validation, restart persistence, concurrent
   creation, invalid stored IDs, and failed writes that preserve original data.
+- The whole customer to order workflow through the API, including a price
+  change before checkout and a restart, and a check that add to cart and checkout
+  reject the same menu items (`tests/test_m2_integration.py`).
+- The shared menu item lookup used by the cart and checkout (`tests/test_catalog.py`).
 - The frontend pages get served, and the form fields match the API's
   `RestaurantCreate`/`RestaurantUpdate` models (`tests/test_frontend.py`).
 - The frontend JS: request bodies, validation, and 422/404/500/network errors

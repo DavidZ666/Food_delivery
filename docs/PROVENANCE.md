@@ -1,5 +1,45 @@
 # AI Use and Provenance
 
+## Shared menu item lookup (#127, #100 candidate 2)
+
+- Student: Spencer Stephen (GitHub `SpencerS04`).
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `app/services/catalog.py`, `cart_service.add_item`,
+  `checkout_service._current_item`, the error mapping in `app/routes/cart.py`
+  and `app/routes/orders.py`, `tests/test_catalog.py`,
+  `tests/test_m2_integration.py`, imports in `tests/test_cart_add.py` and
+  `tests/test_product_identity_migration.py`, API contract and README.
+- Weakness found during integration: checkout called `cart_service._menu_item`,
+  a private cart helper, and cart and checkout each had their own
+  `MenuItemUnavailableError` and their own copy of the "available and has a
+  name" check. If someone changed one copy, add to cart and checkout could
+  disagree about what can be ordered, and routes had to catch two different
+  classes for the same error.
+- Change: `catalog.py` owns the rule now. `find_menu_item` finds an item whose
+  restaurant still exists (reading the repositories, so no other service's
+  exceptions are needed) and `get_orderable_item` adds the availability, name
+  and optional same-restaurant checks. Both services and both routes use it.
+  `cart_service` no longer imports `menu_service` or `product_repo`. API
+  responses are unchanged: add to cart still gives 404/409, and checkout still
+  turns a missing item into 409 since it was already in the cart.
+- Alternatives: putting the lookup in `menu_service` would keep cart and
+  checkout catching `menu_service` exceptions, which is the coupling this is
+  meant to remove. A full `DomainError` hierarchy with one exception handler
+  (candidate 1) would touch every route and was too big for this PR.
+- TDD and regression: `tests/test_catalog.py` (8 tests) failed before
+  `catalog.py` existed, then passed. The regression test checks that add to cart
+  and checkout both reject an unavailable item, a blank name, a deleted item and
+  a deleted restaurant, and that nothing gets saved. Taking the blank-name check
+  out of `catalog.py` makes it fail. The two copies still matched before this
+  change (the new tests pass on `main` too), so it guards against them drifting
+  apart, not a bug that already happened. `tests/test_m2_integration.py` also
+  runs the whole register to order workflow with a price change and a restart (#101).
+- Validation: 999 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 60
+  frontend tests passed, `git diff --check` passed, representative data unchanged.
+- Limits: only the menu item lookup moved. Checkout still uses
+  `cart_service.CartNotFoundError` and `CartTotalError`, and routes still map
+  errors to HTTP by hand (candidate 1).
+
 ## Account UI (#95)
 
 - Student: Zihan Tao (GitHub `freesialuo`).

@@ -7,7 +7,7 @@ from app.core.auth import require_account_access, require_customer_owner
 from app.routes.cart import CART_TOTAL_RESPONSE
 from app.schemas.error import ErrorResponse
 from app.schemas.order import Order
-from app.services import cart_service, checkout_service, customer_service, order_service
+from app.services import cart_service, catalog, checkout_service, customer_service, order_service
 
 
 router = APIRouter(tags=["Orders"])
@@ -46,7 +46,7 @@ def checkout(customer_id: CustomerId):
         raise HTTPException(status_code=403, detail="Forbidden") from exc
     except (cart_service.CartNotFoundError, customer_service.CustomerNotFoundError) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except (checkout_service.EmptyCartError, checkout_service.MenuItemUnavailableError) as exc:
+    except (checkout_service.EmptyCartError, catalog.MenuItemUnavailableError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except cart_service.CartTotalError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
