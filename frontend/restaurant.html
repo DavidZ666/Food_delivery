@@ -15,6 +15,7 @@
         <a href="./">Restaurants</a>
         <a href="create-restaurant.html">Create a restaurant</a>
         <a href="edit-restaurant.html">Edit a restaurant</a>
+        <a href="orders.html">Orders</a>
         <a href="account.html">Account</a>
       </nav>
     </div>
@@ -30,6 +31,36 @@
       <p id="menu-status" role="status" aria-live="polite"></p>
       <button id="retry-menu" type="button" hidden>Retry menu</button>
       <ul id="menu-list"></ul>
+    </section>
+    <section id="cart-section" aria-labelledby="cart-heading">
+      <h2 id="cart-heading">Your cart</h2>
+
+      <p id="cart-status" role="status" aria-live="polite"></p>
+      <p id="cart-sign-in" hidden>
+        <a href="sign-in.html">Sign in</a> with a customer account to use the cart.
+      </p>
+
+      <button id="cart-retry" type="button" hidden>Reload cart</button>
+
+      <section id="order-confirmation" aria-labelledby="order-confirmation-heading" hidden>
+        <h3 id="order-confirmation-heading" tabindex="-1">Order placed</h3>
+        <div id="order-confirmation-details"></div>
+        <p><a id="order-confirmation-link" href="orders.html">View this order</a> or see <a href="orders.html">all your orders</a>.</p>
+      </section>
+
+      <div id="cart-content" hidden>
+        <p id="cart-restaurant"></p>
+        <p id="cart-empty" hidden>Your cart is empty.</p>
+        <ul id="cart-items"></ul>
+
+        <p>Subtotal: <strong id="cart-subtotal"></strong></p>
+        <p>Total: <strong id="cart-total"></strong></p>
+
+        <p class="actions">
+          <button id="cart-checkout" type="button">Check out</button>
+          <button id="cart-clear" type="button">Clear cart</button>
+        </p>
+      </div>
     </section>
   </main>
   <script type="module" src="js/restaurant-details.js"></script>

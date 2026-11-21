@@ -4,7 +4,7 @@ import json
 import pytest
 
 from app.repositories import product_repo
-from app.services import checkout_service
+from app.services import catalog, checkout_service
 
 
 FIELDS = {"name": "Replacement soup", "description": "", "price": 99.0,
@@ -27,7 +27,7 @@ def test_bootstrap_preserves_deleted_product_references(data_dir, source):
     created = product_repo.create(101, FIELDS)
 
     assert created["product_id"] > 2
-    with pytest.raises(checkout_service.MenuItemUnavailableError):
+    with pytest.raises(catalog.MenuItemUnavailableError):
         checkout_service._current_item(101, line)
 
 

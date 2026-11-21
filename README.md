@@ -86,12 +86,13 @@ and mobile layout from 320px.
 |------|------|------|
 | Restaurant list | /app/ | `GET /restaurants`, name search and cuisine filtering |
 | Create a restaurant | /app/create-restaurant.html | `POST /restaurants` |
-| Restaurant details and menu | /app/restaurant.html?id=1 | Restaurant details and menu GET endpoints |
+| Restaurant details, menu and cart | /app/restaurant.html?id=1 | Restaurant details and menu GET endpoints, cart endpoints, `POST /customers/{customer_id}/checkout` |
 | Menu item details | /app/menu-item.html?restaurantId=1&productId=1 | Selected restaurant/item GET endpoint |
 | Edit a restaurant | /app/edit-restaurant.html?id={restaurant_id} | `GET /restaurants`, `GET` + `PATCH /restaurants/{restaurant_id}` |
 | Create an account | /app/register.html | `POST /customers` |
 | Sign in | /app/sign-in.html | `POST /auth/login` |
 | Account | /app/account.html | `GET` + `PATCH /customers/{customer_id}`, `POST /customers/{customer_id}/deactivate` |
+| Your orders | /app/orders.html (one order: ?id={order_id}) | `GET /customers/{customer_id}/orders[/{order_id}]`, `GET /restaurants` for names |
 
 **Create form:** checks the required fields first, then sends the request. If
 the API sends back a 422 the errors show up next to the fields they belong to.
@@ -113,12 +114,27 @@ and can sign out or deactivate the account after a confirmation. A 401 clears
 the stored session and asks you to sign in again; a 403 says the account is not
 allowed to do that.
 
+**Checkout and orders (#97):** the cart on the restaurant page has a Check out
+button (disabled while the cart is empty). It calls the checkout endpoint, which
+rechecks the menu and saves the order at current prices. The saved order then
+shows above the cart with its items, delivery address and the total the backend
+saved, and the cart reloads empty. If checkout is rejected (for example an item
+became unavailable) the error is shown and the cart stays as it was, since the
+backend didn't change anything. If the order is saved but the cart can't be
+reloaded afterwards, the message still gives the order number and the cart
+controls stay disabled until Reload cart works. The Orders page in the nav lists the signed-in
+customer's orders newest first and `orders.html?id=N` shows one order. Unknown
+order IDs show "Order not found".
+
 The JS is split up so most of it can be tested:
 - `js/api.js` makes the requests and turns errors into an `ApiError`
 - `js/restaurant-form.js` has the validation and builds the request bodies (no DOM code, so the node tests can use it)
 - `js/form-ui.js` shows status messages and field errors
 - `js/session.js` stores the signed-in session
 - `js/account-form.js` has the account validation and request bodies (no DOM code)
+- `js/cart.js` has the cart and checkout requests and state (no DOM code), `js/cart-ui.js` draws the cart panel
+- `js/orders.js` checks and loads orders (no DOM code), `js/order-view.js` draws one order for both the
+  checkout confirmation and the orders page, `js/orders-page.js` runs the orders page
 
 ## API Endpoints
 
@@ -315,6 +331,10 @@ Tests cover:
 - Failure cases: missing data file, invalid JSON, and missing required fields.
 - Restaurant creation, request validation, restart persistence, concurrent
   creation, invalid stored IDs, and failed writes that preserve original data.
+- The whole customer to order workflow through the API, including a price
+  change before checkout and a restart, and a check that add to cart and checkout
+  reject the same menu items (`tests/test_m2_integration.py`).
+- The shared menu item lookup used by the cart and checkout (`tests/test_catalog.py`).
 - The frontend pages get served, and the form fields match the API's
   `RestaurantCreate`/`RestaurantUpdate` models (`tests/test_frontend.py`).
 - The frontend JS: request bodies, validation, and 422/404/500/network errors

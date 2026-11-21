@@ -1,4 +1,7 @@
 import { apiRequest } from "./api.js";
+import { mountCart } from "./cart-ui.js";
+
+const cartUi = mountCart();
 
 const heading = document.querySelector("#restaurant-name");
 const statusMessage = document.querySelector("#restaurant-status");
@@ -62,6 +65,7 @@ async function loadMenu() {
   retry.hidden = true;
   section.hidden = false;
   list.replaceChildren();
+  cartUi.resetAddButtons();
   list.setAttribute("aria-busy", "true");
   status.textContent = "Loading menu...";
   try {
@@ -78,12 +82,13 @@ async function loadMenu() {
       const summary = document.createElement("p");
       summary.textContent = `${item.category} · $${item.price.toFixed(2)} · ` +
         (item.is_available ? "Available" : "Unavailable");
-      row.append(title, summary);
+      row.append(title, summary, cartUi.addButton(item));
       list.append(row);
     }
     status.textContent = items.length ? `${items.length} menu item(s).` : "No menu items available.";
   } catch (error) {
     list.replaceChildren();
+    cartUi.resetAddButtons();
     status.textContent = error.message;
     retry.hidden = false;
   } finally {

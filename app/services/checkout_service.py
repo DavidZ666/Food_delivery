@@ -4,14 +4,10 @@ from threading import Lock
 
 from app.repositories import cart_repo, order_repo
 from app.schemas.order import Order, utc_timestamp
-from app.services import cart_service, customer_service
+from app.services import cart_service, catalog, customer_service
 
 
 class EmptyCartError(ValueError):
-    pass
-
-
-class MenuItemUnavailableError(ValueError):
     pass
 
 
@@ -22,12 +18,10 @@ _checkout_lock = Lock()
 def _current_item(restaurant_id: int, line: dict) -> dict:
     """Re-read the menu item; it must still exist, belong to the cart's restaurant and be available."""
     try:
-        product = cart_service._menu_item(line["product_id"])
-    except cart_service.MenuItemNotFoundError:
-        raise MenuItemUnavailableError("Menu item is unavailable") from None
-    if (product["restaurant_id"] != restaurant_id or product["is_available"] is not True
-            or not product["name"].strip()):
-        raise MenuItemUnavailableError("Menu item is unavailable")
+        product = catalog.get_orderable_item(line["product_id"], restaurant_id)
+    except catalog.MenuItemNotFoundError:
+        # the item was in the cart, so if it's gone now checkout says unavailable (409), not 404
+        raise catalog.MenuItemUnavailableError("Menu item is unavailable") from None
     unit_price = product["price"]
     return {"product_id": product["product_id"], "name": product["name"], "unit_price": unit_price,
             "quantity": line["quantity"], "line_total": round(unit_price * line["quantity"], 2)}

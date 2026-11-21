@@ -1,5 +1,99 @@
 # AI Use and Provenance
 
+## Cart reload after checkout, browser test cleanup (#129, #130 review follow-up)
+
+- Student: Zihan Tao (GitHub `freesialuo`).
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `checkout()` in `frontend/js/cart.js`, three tests in
+  `tests/frontend/checkout.test.mjs`, formatting in `tests/browser/fixtures.mjs`
+  and `tests/browser/workflow.spec.mjs`, README.
+- Purpose and influence: these are review notes from #129 and #130. When checkout saved the order but the
+  cart reload after it failed, the status showed a generic cart error and the
+  old cart stayed usable. Now the message gives the order number, and the cart
+  controls stay disabled until Reload cart works. A 401/403 still signs the
+  customer out of the cart. The #130 browser test files had misindented lines
+  and no final newline, so those were fixed with no change in behaviour.
+- TDD: the 3 new checkout tests (server error, network error, expired sign-in
+  during the reload) failed before the change, then passed.
+- Validation: 1004 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 100
+  frontend tests and 27 browser tests passed, `git diff --check` passed,
+  representative data unchanged.
+
+## Checkout and order views (#97)
+
+- Student: Spencer Stephen (GitHub `SpencerS04`).
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `frontend/js/orders.js`, `frontend/js/order-view.js`,
+  `frontend/js/orders-page.js`, `frontend/orders.html`, `checkout()` in
+  `frontend/js/cart.js`, the checkout button and confirmation in
+  `frontend/restaurant.html` and `frontend/js/cart-ui.js`, the Orders nav link on
+  every page, order styles in `frontend/css/styles.css`,
+  `tests/frontend/orders.test.mjs`, `tests/frontend/checkout.test.mjs`, the page
+  lists in `tests/test_frontend.py`, `tests/test_frontend_design.py` and
+  `tests/browser/layout.spec.mjs`, and the README.
+- Purpose and influence: the backend could check out and return orders but the
+  frontend had no way to start a checkout or see an order, so the M2 workflow
+  stopped at the cart. Checkout reuses the cart controller's busy, 401/403 and
+  404 resync handling from #96, and the order checks follow `isCart()`. All
+  amounts shown come from the backend. A rejected checkout (409) keeps the cart
+  on screen and says nothing changed.
+- TDD: the 15 order helper tests failed before `orders.js` existed and the 8
+  checkout tests failed before `checkout()` was added, then passed.
+- Manual check: against a copy of `data/` in a temp folder, registered and signed
+  in through the UI, added items (total $17.47), made one item unavailable in
+  storage and saw "Checkout failed: Menu item is unavailable. Your cart was not
+  changed." with the cart kept. After removing it and raising the other item's
+  price, checkout showed the order at the new price ($14.98) and an empty cart.
+  The orders list, `?id=1`, an unknown ID (404 "Order not found"), a bad ID, the
+  signed-out view and a 320px width all worked. "Qty" was changed to "Quantity"
+  because it looked underlined in our font.
+- Validation: 991 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 97
+  frontend tests and 23 browser tests passed, `git diff --check` passed,
+  representative data unchanged.
+- Limits: the checkout error repeats the backend message, which doesn't say
+  which item is unavailable. There are no Playwright tests for checkout yet
+  (#98); the browser fixture would also need `carts.json` and `orders.json`.
+
+## Shared menu item lookup (#127, #100 candidate 2)
+
+- Student: Spencer Stephen (GitHub `SpencerS04`).
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `app/services/catalog.py`, `cart_service.add_item`,
+  `checkout_service._current_item`, the error mapping in `app/routes/cart.py`
+  and `app/routes/orders.py`, `tests/test_catalog.py`,
+  `tests/test_m2_integration.py`, imports in `tests/test_cart_add.py` and
+  `tests/test_product_identity_migration.py`, API contract and README.
+- Weakness found during integration: checkout called `cart_service._menu_item`,
+  a private cart helper, and cart and checkout each had their own
+  `MenuItemUnavailableError` and their own copy of the "available and has a
+  name" check. If someone changed one copy, add to cart and checkout could
+  disagree about what can be ordered, and routes had to catch two different
+  classes for the same error.
+- Change: `catalog.py` owns the rule now. `find_menu_item` finds an item whose
+  restaurant still exists (reading the repositories, so no other service's
+  exceptions are needed) and `get_orderable_item` adds the availability, name
+  and optional same-restaurant checks. Both services and both routes use it.
+  `cart_service` no longer imports `menu_service` or `product_repo`. API
+  responses are unchanged: add to cart still gives 404/409, and checkout still
+  turns a missing item into 409 since it was already in the cart.
+- Alternatives: putting the lookup in `menu_service` would keep cart and
+  checkout catching `menu_service` exceptions, which is the coupling this is
+  meant to remove. A full `DomainError` hierarchy with one exception handler
+  (candidate 1) would touch every route and was too big for this PR.
+- TDD and regression: `tests/test_catalog.py` (8 tests) failed before
+  `catalog.py` existed, then passed. The regression test checks that add to cart
+  and checkout both reject an unavailable item, a blank name, a deleted item and
+  a deleted restaurant, and that nothing gets saved. Taking the blank-name check
+  out of `catalog.py` makes it fail. The two copies still matched before this
+  change (the new tests pass on `main` too), so it guards against them drifting
+  apart, not a bug that already happened. `tests/test_m2_integration.py` also
+  runs the whole register to order workflow with a price change and a restart (#101).
+- Validation: 999 Python tests passed with `PYTHONWARNDEFAULTENCODING=1`, 60
+  frontend tests passed, `git diff --check` passed, representative data unchanged.
+- Limits: only the menu item lookup moved. Checkout still uses
+  `cart_service.CartNotFoundError` and `CartTotalError`, and routes still map
+  errors to HTTP by hand (candidate 1).
+
 ## Account UI (#95)
 
 - Student: Zihan Tao (GitHub `freesialuo`).
@@ -655,3 +749,23 @@
   prefix-deployment password redaction and OpenAPI. Representative data files
   were unchanged.
 - PR: #104.
+
+## Cart UI review fixes (#96)
+
+- Student: Zihan Tao (GitHub `freesialuo`), reviewing PR #126 by `DavidZ666`.
+- Label: AI-GENERATED; AI tool: Claude Code (Claude Opus 5.5).
+- Artifacts: `frontend/js/cart.js`, `frontend/js/cart-ui.js`,
+  `frontend/js/restaurant-details.js`, `frontend/restaurant.html`,
+  `tests/frontend/cart.test.mjs`.
+- Purpose and influence: fix review findings on the cart UI. A 404 on a cart
+  mutation now reloads the cart. The cart section moves inside `<main>`. Cart
+  responses are checked before rendering. Unexpected script errors show a
+  generic message. Add-to-cart names now match the visible text, and the add
+  buttons reset when the menu reloads. The DOM bindings move from `cart.js`
+  into `cart-ui.js`.
+- Validation: `node --test "tests/frontend/*.test.mjs"`: 74 passed. Playwright
+  E2E: 23 passed. A one-off browser check against a real server ran
+  add-to-cart, an out-of-band checkout, the 404 resync and a menu retry. The
+  check was not committed. `git diff --check` and `git diff --exit-code data/`
+  passed.
+- PR: #126.
